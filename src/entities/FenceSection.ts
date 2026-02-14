@@ -4,13 +4,19 @@ const COLOR_FULL = 0xa0825a;
 const COLOR_DAMAGED = 0x7a6040;
 const COLOR_CRITICAL = 0x503828;
 
+const FENCE_WIDTH = 4;
+const FENCE_HEIGHT = 1.8;
+const BAR_COUNT = 7;
+const BAR_RADIUS = 0.06;
+const RAIL_HEIGHT = 0.08;
+const RAIL_DEPTH = 0.1;
+
 export class FenceSection {
-  mesh: THREE.Mesh;
+  mesh: THREE.Group;
   hp: number;
   maxHp: number;
   index: number;
 
-  // Centre position on the XZ plane
   readonly worldPos: THREE.Vector3;
 
   private material: THREE.MeshStandardMaterial;
@@ -28,15 +34,41 @@ export class FenceSection {
     this.worldPos = position.clone();
 
     this.material = new THREE.MeshStandardMaterial({ color: COLOR_FULL });
-    this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(4, 1.8, 0.25),
-      this.material,
-    );
+
+    this.mesh = new THREE.Group();
+
+    // 세로 창살
+    const barGeo = new THREE.CylinderGeometry(BAR_RADIUS, BAR_RADIUS, FENCE_HEIGHT, 6);
+    const spacing = FENCE_WIDTH / (BAR_COUNT + 1);
+    for (let i = 1; i <= BAR_COUNT; i++) {
+      const bar = new THREE.Mesh(barGeo, this.material);
+      bar.position.set(-FENCE_WIDTH / 2 + spacing * i, FENCE_HEIGHT / 2, 0);
+      bar.castShadow = true;
+      bar.receiveShadow = true;
+      this.mesh.add(bar);
+    }
+
+    // 상단 가로 레일
+    const topRailGeo = new THREE.BoxGeometry(FENCE_WIDTH, RAIL_HEIGHT, RAIL_DEPTH);
+    const topRail = new THREE.Mesh(topRailGeo, this.material);
+    topRail.position.set(0, FENCE_HEIGHT, 0);
+    topRail.castShadow = true;
+    this.mesh.add(topRail);
+
+    // 중간 가로 레일
+    const midRail = new THREE.Mesh(topRailGeo, this.material);
+    midRail.position.set(0, FENCE_HEIGHT * 0.5, 0);
+    midRail.castShadow = true;
+    this.mesh.add(midRail);
+
+    // 하단 가로 레일
+    const bottomRail = new THREE.Mesh(topRailGeo, this.material);
+    bottomRail.position.set(0, 0.05, 0);
+    bottomRail.castShadow = true;
+    this.mesh.add(bottomRail);
+
     this.mesh.position.copy(position);
-    this.mesh.position.y = 0.9;
     this.mesh.rotation.y = rotationY;
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
     scene.add(this.mesh);
   }
 
@@ -60,7 +92,6 @@ export class FenceSection {
     this.updateVisual();
   }
 
-  /** 세이브 복원용 — HP를 직접 설정하고 비주얼 갱신 */
   restoreHp(value: number): void {
     this.hp = Math.max(0, Math.min(this.maxHp, value));
     this.updateVisual();
