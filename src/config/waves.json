@@ -1,0 +1,12 @@
+[
+  { "wave": 1,  "zombies": 5,  "spawnInterval": 2.0, "speedMult": 1.0, "hpMult": 1.0 },
+  { "wave": 2,  "zombies": 8,  "spawnInterval": 1.8, "speedMult": 1.0, "hpMult": 1.0 },
+  { "wave": 3,  "zombies": 12, "spawnInterval": 1.5, "speedMult": 1.1, "hpMult": 1.12 },
+  { "wave": 4,  "zombies": 15, "spawnInterval": 1.3, "speedMult": 1.1, "hpMult": 1.25 },
+  { "wave": 5,  "zombies": 20, "spawnInterval": 1.0, "speedMult": 1.2, "hpMult": 1.4 },
+  { "wave": 6,  "zombies": 25, "spawnInterval": 0.9, "speedMult": 1.2, "hpMult": 1.55 },
+  { "wave": 7,  "zombies": 30, "spawnInterval": 0.8, "speedMult": 1.3, "hpMult": 1.7 },
+  { "wave": 8,  "zombies": 35, "spawnInterval": 0.7, "speedMult": 1.3, "hpMult": 1.9 },
+  { "wave": 9,  "zombies": 40, "spawnInterval": 0.6, "speedMult": 1.4, "hpMult": 2.1 },
+  { "wave": 10, "zombies": 50, "spawnInterval": 0.5, "speedMult": 1.5, "hpMult": 2.5 }
+]

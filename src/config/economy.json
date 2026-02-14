@@ -1,0 +1,9 @@
+{
+  "coinPerZombie": 10,
+  "coinVariance": 5,
+  "absorbRadius": 4.5,
+  "absorbSpeed": 8,
+  "repairCostPerHp": 0.5,
+  "waveBonus": 20,
+  "waveBonusPerWave": 10
+}

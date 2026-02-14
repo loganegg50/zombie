@@ -1,0 +1,14 @@
+[
+  {
+    "id": "basic",
+    "name": "Shambler",
+    "hp": 30,
+    "speed": 1.5,
+    "damage": 5,
+    "attackRate": 1.5,
+    "fenceDamage": 10,
+    "coinDrop": { "min": 8, "max": 15 },
+    "bodyColor": "0x556b2f",
+    "scale": 1.0
+  }
+]

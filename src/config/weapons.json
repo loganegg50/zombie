@@ -1,0 +1,44 @@
+[
+  {
+    "id": "wooden_sword",
+    "name": "나무검",
+    "damage": 8,
+    "range": 2.5,
+    "swingSpeed": 0.3,
+    "knockback": 0.8,
+    "arc": 90,
+    "cost": 0,
+    "upgrades": [
+      { "level": 2, "cost": 50, "damage": 12, "range": 2.8 },
+      { "level": 3, "cost": 120, "damage": 16, "range": 3.0 }
+    ]
+  },
+  {
+    "id": "iron_sword",
+    "name": "철검",
+    "damage": 18,
+    "range": 3.0,
+    "swingSpeed": 0.35,
+    "knockback": 2.0,
+    "arc": 110,
+    "cost": 100,
+    "upgrades": [
+      { "level": 2, "cost": 150, "damage": 25, "range": 3.3 },
+      { "level": 3, "cost": 250, "damage": 35, "range": 3.6 }
+    ]
+  },
+  {
+    "id": "great_sword",
+    "name": "대검",
+    "damage": 35,
+    "range": 3.5,
+    "swingSpeed": 0.65,
+    "knockback": 4.0,
+    "arc": 150,
+    "cost": 200,
+    "upgrades": [
+      { "level": 2, "cost": 250, "damage": 48, "range": 3.8 },
+      { "level": 3, "cost": 400, "damage": 65, "range": 4.2 }
+    ]
+  }
+]
