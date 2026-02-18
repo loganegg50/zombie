@@ -79,6 +79,7 @@ export class Game {
   private debugSector!: THREE.Mesh;
   private debugSectorEdge!: THREE.Line;
   private debugZombieCircles: THREE.Line[] = [];
+  private debugZombieBoxes: THREE.LineSegments[] = [];
   private debugSectorRange = 0;
   private debugSectorArc = 0;
 
@@ -1012,6 +1013,25 @@ export class Game {
         this.debugZombieCircles[i].visible = false;
       }
     }
+
+    // 좀비 히트박스 (주황 와이어프레임 — 여기를 맞추면 데미지)
+    while (this.debugZombieBoxes.length < activeZombies.length) {
+      this.debugZombieBoxes.push(this.createZombieHitbox());
+    }
+
+    for (let i = 0; i < this.debugZombieBoxes.length; i++) {
+      if (i < activeZombies.length) {
+        this.debugZombieBoxes[i].visible = true;
+        const z = activeZombies[i];
+        this.debugZombieBoxes[i].position.set(
+          z.position.x,
+          z.position.y + 0.95, // 발 기준 → 몸 중심
+          z.position.z,
+        );
+      } else {
+        this.debugZombieBoxes[i].visible = false;
+      }
+    }
   }
 
   private rebuildDebugSector(): void {
@@ -1079,6 +1099,17 @@ export class Game {
     points.push(new THREE.Vector3(0, 0, 0));
 
     return new THREE.BufferGeometry().setFromPoints(points);
+  }
+
+  /** 좀비 히트박스 와이어프레임 박스 생성 (주황) */
+  private createZombieHitbox(): THREE.LineSegments {
+    // 몸통(0.65×1.3×0.4) + 머리(구체 r=0.25) 전체를 감싸는 박스
+    const geo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.9, 1.9, 0.9));
+    const mat = new THREE.LineBasicMaterial({ color: 0xff7700, depthTest: false });
+    const mesh = new THREE.LineSegments(geo, mat);
+    mesh.renderOrder = 999;
+    this.debugGroup.add(mesh);
+    return mesh;
   }
 
   private createDebugCircle(radius: number, color: number): THREE.Line {
