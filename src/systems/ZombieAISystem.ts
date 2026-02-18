@@ -11,6 +11,8 @@ const RAMP_ENTRY = new THREE.Vector3(RAMP_ORIGIN[0] - 1.0, 0, RAMP_ORIGIN[1]);
 
 const FENCE_ATTACK_RANGE = 1.8;
 const PLAYER_ATTACK_RANGE = 1.5;
+// 갭(구멍)은 같은 거리의 온전한 울타리보다 이 비율만큼 가깝게 취급 (낮을수록 갭 선호)
+const GAP_PREFER_FACTOR = 0.7;
 
 export function updateZombieAI(
   zombie: Zombie,
@@ -44,39 +46,59 @@ export function updateZombieAI(
     case ZombieState.SPAWNING:
       zombie.stateTimer -= dt;
       if (zombie.stateTimer <= 0) {
-        pickTargetFence(zombie, fences);
+        // 구멍(갭)을 우선 탐색, 없으면 가장 가까운 울타리
+        pickBestTarget(zombie, fences);
         zombie.state = zombie.targetFence ? ZombieState.MOVING_TO_FENCE : ZombieState.CHASING;
       }
       break;
 
     case ZombieState.MOVING_TO_FENCE: {
-      if (!zombie.targetFence || zombie.targetFence.isDestroyed) {
-        pickTargetFence(zombie, fences);
+      if (!zombie.targetFence) {
+        pickBestTarget(zombie, fences);
         if (!zombie.targetFence) {
-          // All fences destroyed — go inside
           zombie.state = ZombieState.CHASING;
           break;
         }
       }
-      const target = zombie.targetFence!.worldPos;
+
+      // 현재 목표가 온전한 울타리인데, 더 가까운 구멍이 생겼으면 경로 변경
+      const tf = zombie.targetFence;
+      if (!tf.isDestroyed) {
+        const nearGap = findNearestGap(zombie, fences);
+        if (nearGap) {
+          const gapDist = distanceXZ(zombie.position, nearGap.worldPos);
+          const curDist = distanceXZ(zombie.position, tf.worldPos);
+          if (gapDist < curDist * GAP_PREFER_FACTOR) {
+            zombie.targetFence = nearGap; // 구멍으로 경로 전환
+          }
+        }
+      }
+
+      const target = zombie.targetFence.worldPos;
       moveToward(zombie, target, dt);
-      if (distanceXZ(zombie.position, target) < FENCE_ATTACK_RANGE) {
-        zombie.state = ZombieState.ATTACKING_FENCE;
-        zombie.attackTimer = 0;
+      const dist = distanceXZ(zombie.position, target);
+
+      if (zombie.targetFence.isDestroyed) {
+        // 구멍으로 이동 중 — 가까이 오면 안으로 진입
+        if (dist < 2.0) {
+          zombie.state = ZombieState.ENTERING;
+          zombie.stateTimer = 1.5;
+        }
+      } else {
+        // 온전한 울타리 — 가까이 오면 공격 시작
+        if (dist < FENCE_ATTACK_RANGE) {
+          zombie.state = ZombieState.ATTACKING_FENCE;
+          zombie.attackTimer = 0;
+        }
       }
       break;
     }
 
     case ZombieState.ATTACKING_FENCE: {
       if (!zombie.targetFence || zombie.targetFence.isDestroyed) {
-        // 다른 멀쩡한 울타리를 찾아서 이동
-        pickTargetFence(zombie, fences);
-        if (!zombie.targetFence) {
-          // 모든 울타리 파괴됨 → 바로 플레이어 추격
-          zombie.state = ZombieState.CHASING;
-        } else {
-          zombie.state = ZombieState.MOVING_TO_FENCE;
-        }
+        // 부수던 울타리가 무너짐 → 그 구멍으로 바로 진입
+        zombie.state = ZombieState.ENTERING;
+        zombie.stateTimer = 1.5;
         break;
       }
       faceToward(zombie, zombie.targetFence.worldPos);
@@ -167,18 +189,35 @@ function getChaseTarget(zombie: Zombie, player: Player): THREE.Vector3 {
   return player.position;
 }
 
-function pickTargetFence(zombie: Zombie, fences: FenceSection[]): void {
+/** 구멍(파괴된 울타리)을 우선 탐색, 없으면 가장 가까운 온전한 울타리 */
+function pickBestTarget(zombie: Zombie, fences: FenceSection[]): void {
+  let best: FenceSection | null = null;
+  let bestScore = Infinity;
+  for (const f of fences) {
+    const d = distanceXZ(zombie.position, f.worldPos);
+    // 구멍은 GAP_PREFER_FACTOR 배 가깝게 취급 (더 매력적)
+    const score = f.isDestroyed ? d * GAP_PREFER_FACTOR : d;
+    if (score < bestScore) {
+      bestScore = score;
+      best = f;
+    }
+  }
+  zombie.targetFence = best;
+}
+
+/** 가장 가까운 구멍(파괴된 울타리) 반환 */
+function findNearestGap(zombie: Zombie, fences: FenceSection[]): FenceSection | null {
   let best: FenceSection | null = null;
   let bestDist = Infinity;
   for (const f of fences) {
-    if (f.isDestroyed) continue;
+    if (!f.isDestroyed) continue;
     const d = distanceXZ(zombie.position, f.worldPos);
     if (d < bestDist) {
       bestDist = d;
       best = f;
     }
   }
-  zombie.targetFence = best;
+  return best;
 }
 
 function moveToward(zombie: Zombie, target: THREE.Vector3, dt: number): void {
