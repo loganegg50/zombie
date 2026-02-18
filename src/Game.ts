@@ -608,6 +608,15 @@ export class Game {
     const facingAngle = this.fpsCamera.yaw;
     this.player.update(moveDir, facingAngle, dt);
 
+    // ADS: 원거리 레벨2+ 에서만 우클릭 조준 가능
+    const weaponLevel = this.ownedWeapons.get(this.weapon.id) ?? 0;
+    const canADS = this.weapon.type === 'ranged' && weaponLevel >= 2;
+    const isADS = canADS && this.input.mouseRightDown;
+    const adsFov = this.weapon.id === 'sniper' ? 25 : this.weapon.id === 'shotgun' ? 62 : 50;
+    this.fpsCamera.lerpFov(isADS ? adsFov : 75, dt);
+    this.fpsCamera.setSensitivity(isADS ? 0.0008 : 0.002);
+    this.weapon.updateAim(isADS, dt);
+
     // Combat
     const activeZombies = this.zombiePool.getActive();
     updateCombat(

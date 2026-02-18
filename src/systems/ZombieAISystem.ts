@@ -4,6 +4,10 @@ import type { Zombie } from '../entities/Zombie';
 import type { Player } from '../entities/Player';
 import type { FenceSection } from '../entities/FenceSection';
 import { distanceXZ, angleToward } from '../utils/MathUtils';
+import { RAMP_ORIGIN, RAMP_DIR, RAMP_HORIZ_LEN, RAMP_RADIUS } from '../core/Scene';
+
+// 경사로 입구 접근 지점 (경사로 시작 바로 앞)
+const RAMP_ENTRY = new THREE.Vector3(RAMP_ORIGIN[0] - 1.0, 0, RAMP_ORIGIN[1]);
 
 const FENCE_ATTACK_RANGE = 1.8;
 const PLAYER_ATTACK_RANGE = 1.5;
@@ -22,6 +26,15 @@ export function updateZombieAI(
   if (zombie.knockbackVel.lengthSq() > 0.01) {
     zombie.position.add(zombie.knockbackVel.clone().multiplyScalar(dt));
     zombie.knockbackVel.multiplyScalar(0.82);
+  }
+
+  // 경사로 바닥 스냅 (경사면 위에 있으면 해당 높이로, 아니면 Y=0)
+  const floorY = getZombieFloorY(zombie.position);
+  if (zombie.position.y < floorY) {
+    zombie.position.y = floorY;
+  } else if (zombie.position.y > floorY + 0.05) {
+    // 경사로에서 벗어나면 중력으로 바닥으로
+    zombie.position.y = Math.max(floorY, zombie.position.y - 12 * dt);
   }
 
   // Bob animation
@@ -87,7 +100,8 @@ export function updateZombieAI(
     }
 
     case ZombieState.CHASING: {
-      moveToward(zombie, player.position, dt);
+      const chaseTarget = getChaseTarget(zombie, player);
+      moveToward(zombie, chaseTarget, dt);
       const heightDiff = Math.abs(zombie.position.y - player.position.y);
       if (distanceXZ(zombie.position, player.position) < PLAYER_ATTACK_RANGE && heightDiff < 1.5) {
         zombie.state = ZombieState.ATTACKING_PLAYER;
@@ -122,6 +136,35 @@ export function updateZombieAI(
       }
       break;
   }
+}
+
+/** 경사로 기준 좀비의 바닥 Y 값 반환 */
+function getZombieFloorY(pos: THREE.Vector3): number {
+  const toX = pos.x - RAMP_ORIGIN[0];
+  const toZ = pos.z - RAMP_ORIGIN[1];
+  const proj = toX * RAMP_DIR[0] + toZ * RAMP_DIR[1];
+  const perpX = toX - proj * RAMP_DIR[0];
+  const perpZ = toZ - proj * RAMP_DIR[1];
+  const perpDist = Math.sqrt(perpX * perpX + perpZ * perpZ);
+
+  if (proj >= 0 && proj <= RAMP_HORIZ_LEN && perpDist < RAMP_RADIUS + 0.5) {
+    return Math.min(proj, RAMP_HORIZ_LEN);
+  }
+  return 0;
+}
+
+/** 플레이어가 높은 곳에 있을 때 경사로 입구를 경유해서 추격 */
+function getChaseTarget(zombie: Zombie, player: Player): THREE.Vector3 {
+  const playerElevated = player.position.y > 1.5;
+  const zombieOnGround = zombie.position.y < 0.5;
+
+  if (playerElevated && zombieOnGround) {
+    const distToEntry = distanceXZ(zombie.position, RAMP_ENTRY);
+    if (distToEntry > 1.5) {
+      return RAMP_ENTRY;
+    }
+  }
+  return player.position;
 }
 
 function pickTargetFence(zombie: Zombie, fences: FenceSection[]): void {

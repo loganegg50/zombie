@@ -39,7 +39,8 @@ export function updateCombat(
 
   if (weapon.type === 'ranged') {
     // ── 원거리: 레이캐스트 (탄환별) ──
-    const spreadRad = (weapon.arc * Math.PI / 180) / 2;
+    // ADS 시 확산 80% 감소
+    const spreadRad = (weapon.arc * (1 - weapon.aimRatio * 0.8) * Math.PI / 180) / 2;
 
     // 탄환별 피해량 누적 (같은 좀비를 여러 탄이 맞출 수 있음)
     const hitMap = new Map<Zombie, number>();

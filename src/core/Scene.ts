@@ -118,6 +118,26 @@ export class SceneManager {
     ring.rotation.x = -Math.PI / 2;
     this.scene.add(ring);
 
+    // 경사로 나뭇잎 (녹색 구체 덩어리들)
+    const rampLeafMat = new THREE.MeshStandardMaterial({ color: 0x2d7a40 });
+    // [수평 투영 거리, XZ 오프셋, 반지름] — 경사를 따라 분포
+    const leafData: [number, number, number][] = [
+      [1.0, 0.3, 0.75],   // 입구 근처
+      [1.8, -0.5, 0.9],   // 하단 중간
+      [2.6, 0.6, 1.0],    // 중단
+      [3.3, -0.4, 0.85],  // 상단 근처
+      [4.0, 0.2, 0.7],    // 꼭대기
+    ];
+    for (const [proj, zOff, r] of leafData) {
+      const lx = RAMP_ORIGIN[0] + RAMP_DIR[0] * proj;
+      const lz = RAMP_ORIGIN[1] + RAMP_DIR[1] * proj + zOff;
+      const ly = proj + r * 0.6; // 경사면 높이 + 약간 위
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 6, 6), rampLeafMat);
+      leaf.position.set(lx, ly, lz);
+      leaf.castShadow = true;
+      this.scene.add(leaf);
+    }
+
     // Benches
     const benchMat = new THREE.MeshStandardMaterial({ color: 0x8b6914 });
     const benchPositions: [number, number, number][] = [

@@ -27,6 +27,17 @@ export class FPSCamera {
     });
   }
 
+  /** FOV를 목표값으로 부드럽게 전환 (ADS용) */
+  lerpFov(targetFov: number, dt: number): void {
+    this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 12);
+    this.camera.updateProjectionMatrix();
+  }
+
+  /** 마우스 감도 설정 (ADS 시 감소) */
+  setSensitivity(s: number): void {
+    this.sensitivity = s;
+  }
+
   /** 마우스 이동 델타로 회전 적용 */
   applyMouseDelta(dx: number, dy: number): void {
     this.yaw -= dx * this.sensitivity;

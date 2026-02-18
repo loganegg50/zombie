@@ -3,6 +3,7 @@ export class Input {
   private keysJustDown = new Set<string>();
   mouseDown = false;
   mouseJustDown = false;
+  mouseRightDown = false;
 
   /** 포인터 락 상태에서의 마우스 이동 델타 (프레임 당) */
   mouseDX = 0;
@@ -47,8 +48,14 @@ export class Input {
         this.mouseJustDown = true;
       }
     });
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 2 && this.pointerLocked) {
+        this.mouseRightDown = true;
+      }
+    });
     canvas.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.mouseDown = false;
+      if (e.button === 2) this.mouseRightDown = false;
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 

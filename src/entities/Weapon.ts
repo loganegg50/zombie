@@ -23,6 +23,13 @@ export class Weapon {
   isShooting = false;
   shootProgress = 0;
 
+  // ADS (Aim Down Sights)
+  private aimProgress = 0;
+  private hipPos = new THREE.Vector3();
+  private hipRot = new THREE.Euler();
+  private adsPos = new THREE.Vector3();
+  private adsRot = new THREE.Euler();
+
   private idlePos = new THREE.Vector3();
   private idleRot = new THREE.Euler();
   private pivot: THREE.Group;
@@ -54,6 +61,15 @@ export class Weapon {
 
     this.viewModel.position.copy(this.idlePos);
     this.pivot.rotation.copy(this.idleRot);
+
+    // ADS 기준값 저장
+    this.hipPos.copy(this.idlePos);
+    this.hipRot.copy(this.idleRot);
+    if (this.type === 'ranged') {
+      // 조준 시 총이 화면 중앙으로 이동
+      this.adsPos.set(0, -0.33, -0.50);
+      this.adsRot.set(0, 0, 0);
+    }
   }
 
   private mat(color: number, metalness = 0, roughness = 0.7): THREE.MeshStandardMaterial {
@@ -288,6 +304,24 @@ export class Weapon {
         if (upg.pellets !== undefined) this.pellets = upg.pellets;
       }
     }
+  }
+
+  // ── ADS (조준) ──
+
+  /** 현재 조준 비율 (0=힙파이어, 1=완전 조준) */
+  get aimRatio(): number { return this.aimProgress; }
+
+  /** 매 프레임 호출 — 조준 상태 전환 및 뷰모델 위치 갱신 */
+  updateAim(aiming: boolean, dt: number): void {
+    if (this.type !== 'ranged') return;
+    const target = aiming ? 1 : 0;
+    this.aimProgress += (target - this.aimProgress) * Math.min(1, dt * 14);
+
+    // idlePos/idleRot을 힙↔ADS 사이에서 보간 (animation이 이 값을 기준으로 사용)
+    this.idlePos.lerpVectors(this.hipPos, this.adsPos, this.aimProgress);
+    this.idleRot.x = this.hipRot.x + (this.adsRot.x - this.hipRot.x) * this.aimProgress;
+    this.idleRot.y = this.hipRot.y + (this.adsRot.y - this.hipRot.y) * this.aimProgress;
+    this.idleRot.z = this.hipRot.z + (this.adsRot.z - this.hipRot.z) * this.aimProgress;
   }
 
   // ── 통합 공격 API ──
