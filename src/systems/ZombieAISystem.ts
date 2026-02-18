@@ -13,6 +13,8 @@ const FENCE_ATTACK_RANGE = 1.8;
 const PLAYER_ATTACK_RANGE = 1.5;
 // 갭(구멍)은 같은 거리의 온전한 울타리보다 이 비율만큼 가깝게 취급 (낮을수록 갭 선호)
 const GAP_PREFER_FACTOR = 0.7;
+// 이 거리 이내의 구멍만 탐지 (다른 좀비가 뚫은 구멍 반응 범위)
+const GAP_DETECT_RANGE = 5;
 
 export function updateZombieAI(
   zombie: Zombie,
@@ -61,14 +63,13 @@ export function updateZombieAI(
         }
       }
 
-      // 현재 목표가 온전한 울타리인데, 더 가까운 구멍이 생겼으면 경로 변경
+      // 현재 목표가 온전한 울타리인데, 5칸 이내에 구멍이 생겼으면 경로 변경
       const tf = zombie.targetFence;
       if (!tf.isDestroyed) {
         const nearGap = findNearestGap(zombie, fences);
         if (nearGap) {
           const gapDist = distanceXZ(zombie.position, nearGap.worldPos);
-          const curDist = distanceXZ(zombie.position, tf.worldPos);
-          if (gapDist < curDist * GAP_PREFER_FACTOR) {
+          if (gapDist <= GAP_DETECT_RANGE) {
             zombie.targetFence = nearGap; // 구멍으로 경로 전환
           }
         }
@@ -195,11 +196,19 @@ function pickBestTarget(zombie: Zombie, fences: FenceSection[]): void {
   let bestScore = Infinity;
   for (const f of fences) {
     const d = distanceXZ(zombie.position, f.worldPos);
-    // 구멍은 GAP_PREFER_FACTOR 배 가깝게 취급 (더 매력적)
-    const score = f.isDestroyed ? d * GAP_PREFER_FACTOR : d;
+    // 5칸 이내 구멍만 선호, 그 이상은 온전한 울타리와 동일하게 취급
+    const score = (f.isDestroyed && d <= GAP_DETECT_RANGE) ? d * GAP_PREFER_FACTOR : (f.isDestroyed ? Infinity : d);
     if (score < bestScore) {
       bestScore = score;
       best = f;
+    }
+  }
+  // 갭만 있고 전부 범위 밖이면 가장 가까운 온전한 울타리로 폴백
+  if (!best) {
+    for (const f of fences) {
+      if (f.isDestroyed) continue;
+      const d = distanceXZ(zombie.position, f.worldPos);
+      if (d < bestScore) { bestScore = d; best = f; }
     }
   }
   zombie.targetFence = best;
