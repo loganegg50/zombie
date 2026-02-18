@@ -153,30 +153,28 @@ export class Game {
     document.getElementById('ui-layer')!.appendChild(this.crosshair);
     this.crosshair.style.display = 'none';
 
-    // 포인터 락 해제 시 → 전투 중이면 자동 일시정지
+    // 포인터 락 해제 시 → 전투 중이면 자동 일시정지 + 무기 선택 표시
     this.input.onPointerLockExit = () => {
       if (this.phase === GamePhase.COMBAT) {
         this.phase = GamePhase.PAUSED;
+        this.renderPauseContent();
         this.pauseOverlay.style.display = 'flex';
         this.crosshair.style.display = 'none';
       }
     };
 
-    // 일시정지 오버레이
+    // 일시정지 오버레이 (배경 클릭 시 재개)
     this.pauseOverlay = document.createElement('div');
     this.pauseOverlay.style.cssText = `
       position: fixed; inset: 0; z-index: 25;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.75);
       display: none; flex-direction: column; align-items: center;
       justify-content: center; font-family: 'Segoe UI', Arial, sans-serif;
       color: #fff;
     `;
-    this.pauseOverlay.innerHTML = `
-      <h1 style="font-size: 48px; margin-bottom: 16px;">일시정지</h1>
-      <p style="font-size: 14px; color: #aaa;">클릭하거나 ESC를 눌러 계속하기</p>
-    `;
-    this.pauseOverlay.addEventListener('click', () => {
-      if (this.phase === GamePhase.PAUSED) {
+    this.pauseOverlay.addEventListener('click', (e) => {
+      // 배경 클릭 시에만 재개 (카드 클릭은 무시)
+      if (e.target === this.pauseOverlay && this.phase === GamePhase.PAUSED) {
         this.togglePause();
       }
     });
@@ -537,6 +535,7 @@ export class Game {
   private togglePause(): void {
     if (this.phase === GamePhase.COMBAT) {
       this.phase = GamePhase.PAUSED;
+      this.renderPauseContent();
       this.pauseOverlay.style.display = 'flex';
       this.crosshair.style.display = 'none';
       document.exitPointerLock();
@@ -773,6 +772,68 @@ export class Game {
     const level = this.ownedWeapons.get(id)!;
     this.equipWeapon(cfg, level);
     this.refreshShop();
+  }
+
+  /** 일시정지 + 무기 선택 UI 렌더링 */
+  private renderPauseContent(): void {
+    const owned = this.weaponConfigs.filter((w) => this.ownedWeapons.has(w.id));
+
+    const cardsHtml = owned.map((w) => {
+      const level = this.ownedWeapons.get(w.id)!;
+      const isEquipped = w.id === this.weapon.id;
+      const typeLabel = w.type === 'ranged' ? '🔫' : '⚔️';
+      return `
+        <div class="pw-card" data-id="${w.id}" style="
+          background: ${isEquipped ? '#1a3a1a' : '#1e1e2e'};
+          border: 2px solid ${isEquipped ? '#4caf50' : '#555'};
+          border-radius: 10px; padding: 14px 16px; min-width: 120px;
+          text-align: center; cursor: ${isEquipped ? 'default' : 'pointer'};
+          transition: border-color 0.15s; user-select: none;
+        ">
+          <div style="font-size: 18px; margin-bottom: 4px;">${typeLabel}</div>
+          <div style="font-size: 15px; font-weight: 700;">${w.name}</div>
+          <div style="font-size: 12px; color: #aaa; margin: 4px 0;">Lv ${level}</div>
+          <div style="font-size: 12px; color: ${isEquipped ? '#4caf50' : '#ffb347'}; font-weight: 600;">
+            ${isEquipped ? '✓ 장착됨' : '장착하기'}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    this.pauseOverlay.innerHTML = `
+      <div style="text-align: center; max-width: 780px; width: 92%;" onclick="event.stopPropagation()">
+        <h1 style="font-size: 32px; margin-bottom: 6px;">⏸ 일시정지</h1>
+        <p style="font-size: 13px; color: #888; margin-bottom: 22px;">무기를 선택하거나 배경을 클릭해 계속하기</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px;">
+          ${cardsHtml}
+        </div>
+        <button id="pw-resume" style="
+          padding: 12px 48px; background: #4caf50; color: #fff;
+          border: none; border-radius: 8px; cursor: pointer;
+          font-size: 16px; font-weight: 700;
+        ">계속하기 (ESC)</button>
+      </div>
+    `;
+
+    // 계속하기 버튼
+    this.pauseOverlay.querySelector('#pw-resume')!.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.phase === GamePhase.PAUSED) this.togglePause();
+    });
+
+    // 무기 카드 클릭
+    this.pauseOverlay.querySelectorAll('.pw-card').forEach((card) => {
+      const id = (card as HTMLElement).dataset.id!;
+      if (id === this.weapon.id) return; // 이미 장착됨
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const cfg = this.weaponConfigs.find((w) => w.id === id);
+        if (cfg) {
+          this.equipWeapon(cfg, this.ownedWeapons.get(id)!);
+          this.renderPauseContent(); // 카드 갱신
+        }
+      });
+    });
   }
 
   private repairAllFences(): void {
