@@ -13,6 +13,31 @@ export interface HitStopState {
   timer: number;
 }
 
+/** Ray-AABB 교차 테스트. 교차하면 교차 거리 t, 아니면 null */
+function rayAABB(
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  boxMin: THREE.Vector3,
+  boxMax: THREE.Vector3,
+): number | null {
+  let tmin = -Infinity;
+  let tmax = Infinity;
+  const axes = ['x', 'y', 'z'] as const;
+  for (const ax of axes) {
+    const d = dir[ax];
+    if (Math.abs(d) < 1e-8) {
+      if (origin[ax] < boxMin[ax] || origin[ax] > boxMax[ax]) return null;
+    } else {
+      const t1 = (boxMin[ax] - origin[ax]) / d;
+      const t2 = (boxMax[ax] - origin[ax]) / d;
+      tmin = Math.max(tmin, Math.min(t1, t2));
+      tmax = Math.min(tmax, Math.max(t1, t2));
+    }
+  }
+  if (tmax < Math.max(tmin, 0)) return null;
+  return Math.max(tmin, 0);
+}
+
 export function updateCombat(
   player: Player,
   weapon: Weapon,
@@ -21,6 +46,7 @@ export function updateCombat(
   hitStop: HitStopState,
   cameraShake: CameraShake,
   particles: ParticleSystem,
+  cameraPitch: number,
   dt: number,
 ): void {
   // 공격 시작
@@ -38,45 +64,44 @@ export function updateCombat(
   let hitCount = 0;
 
   if (weapon.type === 'ranged') {
-    // ── 원거리: 레이캐스트 (탄환별) ──
+    // ── 원거리: 3D 레이캐스트 + AABB 히트박스 ──
     // ADS 시 확산 80% 감소
     const spreadRad = (weapon.arc * (1 - weapon.aimRatio * 0.8) * Math.PI / 180) / 2;
+
+    // 레이 시작점: 플레이어 눈 높이
+    const EYE_H = 1.65;
+    const rayOrigin = new THREE.Vector3(
+      player.position.x,
+      player.position.y + EYE_H,
+      player.position.z,
+    );
 
     // 탄환별 피해량 누적 (같은 좀비를 여러 탄이 맞출 수 있음)
     const hitMap = new Map<Zombie, number>();
 
     for (let p = 0; p < weapon.pellets; p++) {
-      // 확산 범위 내 랜덤 방향
+      // 수평 확산 + pitch 포함 3D 발사 방향
       const angle = facingAngle + (Math.random() - 0.5) * spreadRad * 2;
-      const dir = new THREE.Vector3(-Math.sin(angle), 0, -Math.cos(angle)).normalize();
+      const cosPitch = Math.cos(cameraPitch);
+      const dir = new THREE.Vector3(
+        -Math.sin(angle) * cosPitch,
+        Math.sin(cameraPitch),
+        -Math.cos(angle) * cosPitch,
+      ).normalize();
 
       let closestZ: Zombie | null = null;
-      let closestDist = weapon.range;
+      let closestT = weapon.range;
 
       for (const z of zombies) {
         if (!z.active || z.state === ZombieState.DYING) continue;
 
-        // 좀비까지의 벡터를 발사 방향에 투영
-        const toZ = new THREE.Vector3(
-          z.position.x - player.position.x,
-          0,
-          z.position.z - player.position.z,
-        );
-        const proj = toZ.dot(dir);
-        if (proj <= 0 || proj > weapon.range) continue;
+        // 좀비 AABB: 발(z.position.y)부터 머리(+1.9)까지, 너비 0.9×0.9
+        const boxMin = new THREE.Vector3(z.position.x - 0.45, z.position.y,       z.position.z - 0.45);
+        const boxMax = new THREE.Vector3(z.position.x + 0.45, z.position.y + 1.9, z.position.z + 0.45);
 
-        // 레이에서 좀비까지 최단 거리
-        const closest = new THREE.Vector3(
-          player.position.x + dir.x * proj,
-          0,
-          player.position.z + dir.z * proj,
-        );
-        const distToRay = Math.sqrt(
-          (z.position.x - closest.x) ** 2 + (z.position.z - closest.z) ** 2,
-        );
-
-        if (distToRay < 0.65 && proj < closestDist) {
-          closestDist = proj;
+        const t = rayAABB(rayOrigin, dir, boxMin, boxMax);
+        if (t !== null && t < closestT) {
+          closestT = t;
           closestZ = z;
         }
       }
@@ -87,9 +112,9 @@ export function updateCombat(
 
       // 총구 화염 파티클
       const muzzlePos = new THREE.Vector3(
-        player.position.x + dir.x * 0.6,
-        player.position.y + 1.5,
-        player.position.z + dir.z * 0.6,
+        rayOrigin.x + dir.x * 0.6,
+        rayOrigin.y + dir.y * 0.6,
+        rayOrigin.z + dir.z * 0.6,
       );
       particles.burst(muzzlePos, 0xffcc44, 3);
     }

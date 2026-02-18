@@ -628,6 +628,7 @@ export class Game {
       this.hitStop,
       this.cameraShake,
       this.particles,
+      this.fpsCamera.pitch,
       dt,
     );
 
