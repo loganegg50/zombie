@@ -5,8 +5,14 @@ export const TREE_POSITIONS: [number, number][] = [
   [-6, -6], [7, -5], [-5, 7], [8, 8], [0, -8],
 ];
 export const TREE_TRUNK_RADIUS = 0.25;
-export const TREE_CANOPY_Y = 2.5;     // 나무 잎 시작 높이 (올라설 수 있는 바닥)
-export const TREE_CANOPY_RADIUS = 1.2; // 나무 잎 반지름
+export const TREE_CANOPY_Y = 2.5;     // 나무 잎 시작 높이
+export const TREE_CANOPY_RADIUS = 1.2;
+
+/** 낙엽 통나무 경사로 (45° 기울어진 긴 나무) */
+export const RAMP_ORIGIN: [number, number] = [-6, 2]; // 시작점 (XZ, Y=0)
+export const RAMP_DIR: [number, number] = [1, 0];     // 진행 방향 (단위벡터, +X)
+export const RAMP_HORIZ_LEN = 4.5;                    // 수평 길이 (높이도 동일, 45°)
+export const RAMP_RADIUS = 0.35;                       // 통나무 반지름
 
 export class SceneManager {
   scene: THREE.Scene;
@@ -67,9 +73,8 @@ export class SceneManager {
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4226 });
     const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d8a4e });
 
-    const treePositions = TREE_POSITIONS;
-
-    for (const [x, z] of treePositions) {
+    // 일반 나무
+    for (const [x, z] of TREE_POSITIONS) {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 2.5, 6), trunkMat);
       trunk.position.set(x, 1.25, z);
       trunk.castShadow = true;
@@ -80,6 +85,38 @@ export class SceneManager {
       canopy.castShadow = true;
       this.scene.add(canopy);
     }
+
+    // 45° 기울어진 경사로 통나무
+    const rampLen3D = RAMP_HORIZ_LEN * Math.SQRT2; // 3D 길이 = 수평길이 * √2
+    const rampGeo = new THREE.CylinderGeometry(RAMP_RADIUS, RAMP_RADIUS * 1.1, rampLen3D, 8);
+    const rampMesh = new THREE.Mesh(rampGeo, trunkMat);
+
+    // 중심점: 시작점 + 방향 * 수평길이/2, 높이 = 수평길이/2 (45°)
+    rampMesh.position.set(
+      RAMP_ORIGIN[0] + RAMP_DIR[0] * RAMP_HORIZ_LEN / 2,
+      RAMP_HORIZ_LEN / 2,
+      RAMP_ORIGIN[1] + RAMP_DIR[1] * RAMP_HORIZ_LEN / 2,
+    );
+
+    // 방향이 +X (1,0)이면 Z축 기준으로 -45° 회전 → (0,1,0) → (1,1,0)/√2
+    // RAMP_DIR = [1, 0]이므로 rotation.z = -PI/4
+    if (RAMP_DIR[0] !== 0) {
+      rampMesh.rotation.z = -Math.sign(RAMP_DIR[0]) * Math.PI / 4;
+    } else {
+      rampMesh.rotation.x = Math.sign(RAMP_DIR[1]) * Math.PI / 4;
+    }
+
+    rampMesh.castShadow = true;
+    rampMesh.receiveShadow = true;
+    this.scene.add(rampMesh);
+
+    // 통나무 끝부분 나이테 표시 (바닥 쪽)
+    const ringGeo = new THREE.CircleGeometry(RAMP_RADIUS * 1.05, 8);
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x4a2f1a });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.set(RAMP_ORIGIN[0], 0.05, RAMP_ORIGIN[1]);
+    ring.rotation.x = -Math.PI / 2;
+    this.scene.add(ring);
 
     // Benches
     const benchMat = new THREE.MeshStandardMaterial({ color: 0x8b6914 });

@@ -11,6 +11,9 @@ const BAR_RADIUS = 0.06;
 const RAIL_HEIGHT = 0.08;
 const RAIL_DEPTH = 0.1;
 
+// 막대 제거 순서: 양쪽 끝에서 안쪽으로
+const REMOVAL_ORDER = [0, 6, 1, 5, 2, 4, 3];
+
 export class FenceSection {
   mesh: THREE.Group;
   hp: number;
@@ -20,6 +23,7 @@ export class FenceSection {
   readonly worldPos: THREE.Vector3;
 
   private material: THREE.MeshStandardMaterial;
+  private bars: THREE.Mesh[] = [];
 
   constructor(
     index: number,
@@ -34,7 +38,6 @@ export class FenceSection {
     this.worldPos = position.clone();
 
     this.material = new THREE.MeshStandardMaterial({ color: COLOR_FULL });
-
     this.mesh = new THREE.Group();
 
     // 세로 창살
@@ -44,28 +47,18 @@ export class FenceSection {
       const bar = new THREE.Mesh(barGeo, this.material);
       bar.position.set(-FENCE_WIDTH / 2 + spacing * i, FENCE_HEIGHT / 2, 0);
       bar.castShadow = true;
-      bar.receiveShadow = true;
       this.mesh.add(bar);
+      this.bars.push(bar);
     }
 
-    // 상단 가로 레일
-    const topRailGeo = new THREE.BoxGeometry(FENCE_WIDTH, RAIL_HEIGHT, RAIL_DEPTH);
-    const topRail = new THREE.Mesh(topRailGeo, this.material);
-    topRail.position.set(0, FENCE_HEIGHT, 0);
-    topRail.castShadow = true;
-    this.mesh.add(topRail);
-
-    // 중간 가로 레일
-    const midRail = new THREE.Mesh(topRailGeo, this.material);
-    midRail.position.set(0, FENCE_HEIGHT * 0.5, 0);
-    midRail.castShadow = true;
-    this.mesh.add(midRail);
-
-    // 하단 가로 레일
-    const bottomRail = new THREE.Mesh(topRailGeo, this.material);
-    bottomRail.position.set(0, 0.05, 0);
-    bottomRail.castShadow = true;
-    this.mesh.add(bottomRail);
+    // 가로 레일 (상단, 중간, 하단)
+    const railGeo = new THREE.BoxGeometry(FENCE_WIDTH, RAIL_HEIGHT, RAIL_DEPTH);
+    for (const yPos of [FENCE_HEIGHT, FENCE_HEIGHT * 0.5, 0.05]) {
+      const rail = new THREE.Mesh(railGeo, this.material);
+      rail.position.set(0, yPos, 0);
+      rail.castShadow = true;
+      this.mesh.add(rail);
+    }
 
     this.mesh.position.copy(position);
     this.mesh.rotation.y = rotationY;
@@ -99,20 +92,29 @@ export class FenceSection {
 
   private updateVisual(): void {
     const ratio = this.hpRatio;
+
     if (ratio <= 0) {
       this.mesh.visible = false;
       return;
     }
     this.mesh.visible = true;
+
+    // 색상 업데이트
     if (ratio > 0.6) {
       this.material.color.setHex(COLOR_FULL);
-      this.mesh.scale.set(1, 1, 1);
     } else if (ratio > 0.3) {
       this.material.color.setHex(COLOR_DAMAGED);
-      this.mesh.scale.set(1, 0.85, 1);
     } else {
       this.material.color.setHex(COLOR_CRITICAL);
-      this.mesh.scale.set(1, 0.65, 1);
+    }
+
+    // 막대기 개수: HP 비율에 따라 줄어듦 (최소 1개, 0이면 전체 숨김)
+    const barsToShow = Math.max(1, Math.ceil(ratio * BAR_COUNT));
+    const barsToHide = BAR_COUNT - barsToShow;
+
+    // REMOVAL_ORDER 순서대로 앞에서부터 숨기고, 나머지는 보임
+    for (let i = 0; i < BAR_COUNT; i++) {
+      this.bars[REMOVAL_ORDER[i]].visible = i >= barsToHide;
     }
   }
 }

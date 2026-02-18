@@ -88,7 +88,8 @@ export function updateZombieAI(
 
     case ZombieState.CHASING: {
       moveToward(zombie, player.position, dt);
-      if (distanceXZ(zombie.position, player.position) < PLAYER_ATTACK_RANGE) {
+      const heightDiff = Math.abs(zombie.position.y - player.position.y);
+      if (distanceXZ(zombie.position, player.position) < PLAYER_ATTACK_RANGE && heightDiff < 1.5) {
         zombie.state = ZombieState.ATTACKING_PLAYER;
         zombie.attackTimer = 0;
       }
@@ -97,7 +98,8 @@ export function updateZombieAI(
 
     case ZombieState.ATTACKING_PLAYER: {
       faceToward(zombie, player.position);
-      if (distanceXZ(zombie.position, player.position) > PLAYER_ATTACK_RANGE + 0.5) {
+      const heightDiff = Math.abs(zombie.position.y - player.position.y);
+      if (distanceXZ(zombie.position, player.position) > PLAYER_ATTACK_RANGE + 0.5 || heightDiff >= 1.5) {
         zombie.state = ZombieState.CHASING;
         break;
       }
