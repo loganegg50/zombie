@@ -28,17 +28,20 @@ export interface WeaponUpgrade {
   swingSpeed?: number;
   knockback?: number;
   arc?: number;
+  pellets?: number;
 }
 
 export interface WeaponConfig {
   id: string;
   name: string;
+  type?: 'melee' | 'ranged';
   damage: number;
   range: number;
   swingSpeed: number;
   knockback: number;
   arc: number;
   cost: number;
+  pellets?: number;
   upgrades: WeaponUpgrade[];
 }
 

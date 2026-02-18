@@ -2,6 +2,7 @@
   {
     "id": "wooden_sword",
     "name": "나무검",
+    "type": "melee",
     "damage": 8,
     "range": 2.5,
     "swingSpeed": 0.3,
@@ -14,8 +15,24 @@
     ]
   },
   {
+    "id": "dagger",
+    "name": "단검",
+    "type": "melee",
+    "damage": 10,
+    "range": 1.8,
+    "swingSpeed": 0.16,
+    "knockback": 0.4,
+    "arc": 70,
+    "cost": 60,
+    "upgrades": [
+      { "level": 2, "cost": 80, "damage": 16, "range": 2.0, "swingSpeed": 0.13 },
+      { "level": 3, "cost": 160, "damage": 24, "range": 2.2, "swingSpeed": 0.11 }
+    ]
+  },
+  {
     "id": "iron_sword",
     "name": "철검",
+    "type": "melee",
     "damage": 18,
     "range": 3.0,
     "swingSpeed": 0.35,
@@ -28,8 +45,24 @@
     ]
   },
   {
+    "id": "axe",
+    "name": "도끼",
+    "type": "melee",
+    "damage": 45,
+    "range": 2.6,
+    "swingSpeed": 0.7,
+    "knockback": 6.0,
+    "arc": 80,
+    "cost": 180,
+    "upgrades": [
+      { "level": 2, "cost": 200, "damage": 65, "range": 2.8, "knockback": 8.0 },
+      { "level": 3, "cost": 350, "damage": 90, "range": 3.0, "knockback": 10.0 }
+    ]
+  },
+  {
     "id": "great_sword",
     "name": "대검",
+    "type": "melee",
     "damage": 35,
     "range": 3.5,
     "swingSpeed": 0.65,
@@ -39,6 +72,69 @@
     "upgrades": [
       { "level": 2, "cost": 250, "damage": 48, "range": 3.8 },
       { "level": 3, "cost": 400, "damage": 65, "range": 4.2 }
+    ]
+  },
+  {
+    "id": "spear",
+    "name": "창",
+    "type": "melee",
+    "damage": 28,
+    "range": 4.5,
+    "swingSpeed": 0.4,
+    "knockback": 3.5,
+    "arc": 40,
+    "cost": 250,
+    "upgrades": [
+      { "level": 2, "cost": 280, "damage": 40, "range": 5.0 },
+      { "level": 3, "cost": 450, "damage": 55, "range": 5.5 }
+    ]
+  },
+  {
+    "id": "pistol",
+    "name": "권총",
+    "type": "ranged",
+    "damage": 30,
+    "range": 18,
+    "swingSpeed": 0.35,
+    "knockback": 2.0,
+    "arc": 4,
+    "cost": 150,
+    "pellets": 1,
+    "upgrades": [
+      { "level": 2, "cost": 180, "damage": 45, "range": 22 },
+      { "level": 3, "cost": 320, "damage": 65, "range": 28 }
+    ]
+  },
+  {
+    "id": "shotgun",
+    "name": "샷건",
+    "type": "ranged",
+    "damage": 25,
+    "range": 7,
+    "swingSpeed": 0.9,
+    "knockback": 5.0,
+    "arc": 35,
+    "cost": 280,
+    "pellets": 7,
+    "upgrades": [
+      { "level": 2, "cost": 300, "damage": 35, "range": 8, "pellets": 8 },
+      { "level": 3, "cost": 500, "damage": 50, "range": 10, "pellets": 9 }
+    ]
+  },
+  {
+    "id": "sniper",
+    "name": "저격총",
+    "type": "ranged",
+    "damage": 120,
+    "range": 35,
+    "swingSpeed": 1.5,
+    "knockback": 10.0,
+    "arc": 1,
+    "cost": 450,
+    "pellets": 1,
+    "upgrades": [
+      { "level": 2, "cost": 500, "damage": 180, "range": 40 },
+      { "level": 3, "cost": 800, "damage": 250, "range": 50 }
     ]
   }
 ]

@@ -374,14 +374,18 @@ export class Game {
     const owned = this.ownedWeapons.has(weaponId);
     const currentLevel = this.ownedWeapons.get(weaponId) ?? 0;
 
+    const isRanged = cfg.type === 'ranged';
+
     // 현재 스탯 (레벨 적용)
     let damage = cfg.damage;
     let range = cfg.range;
+    let pellets = cfg.pellets ?? 1;
     if (currentLevel > 1) {
       const upgrade = cfg.upgrades.find((u) => u.level === currentLevel);
       if (upgrade) {
         damage = upgrade.damage;
         range = upgrade.range;
+        if (upgrade.pellets !== undefined) pellets = upgrade.pellets;
       }
     }
 
@@ -389,7 +393,6 @@ export class Game {
 
     let actionHtml = '';
     if (!owned) {
-      // 구매 버튼
       const canBuy = this.player.coins >= cfg.cost;
       actionHtml = `
         <div style="margin-top: 20px; text-align: center;">
@@ -402,7 +405,6 @@ export class Game {
         </div>
       `;
     } else {
-      // 소유 + 업그레이드 가능 여부
       const nextUpgrade = cfg.upgrades.find((u) => u.level === currentLevel + 1);
       if (nextUpgrade) {
         const canUpgrade = this.player.coins >= nextUpgrade.cost;
@@ -421,23 +423,30 @@ export class Game {
           </div>
         `;
       } else {
-        actionHtml = `
-          <div style="margin-top: 20px; color: #4caf50; font-size: 14px;">최대 레벨 달성!</div>
-        `;
+        actionHtml = `<div style="margin-top: 20px; color: #4caf50; font-size: 14px;">최대 레벨 달성!</div>`;
       }
     }
 
+    // 원거리/근접에 따라 스탯 레이블 구분
+    const typeLabel = isRanged ? '🔫 원거리' : '⚔️ 근접';
+    const typeColor = isRanged ? '#69d5ff' : '#ff9866';
+    const speedLabel = isRanged ? '연사 속도' : '휘두르기 속도';
+    const arcLabel = isRanged ? '확산각' : '범위 각도';
+    const pelletsRow = isRanged
+      ? `발사 탄수: <span style="color: #f9ca24;">${pellets}</span><br>` : '';
+
     detail.innerHTML = `
-      <h2 style="font-size: 28px; margin-bottom: 8px;">${cfg.name}</h2>
-      <div style="font-size: 13px; color: #aaa; margin-bottom: 16px;">
-        ${owned ? `Lv${currentLevel} 보유 중` : '미보유'}
+      <h2 style="font-size: 26px; margin-bottom: 4px;">${cfg.name}</h2>
+      <div style="font-size: 12px; color: ${typeColor}; margin-bottom: 12px; font-weight: 700;">
+        ${typeLabel} ${owned ? `&nbsp;|&nbsp; Lv${currentLevel} 보유 중` : '&nbsp;|&nbsp; 미보유'}
       </div>
-      <div style="font-size: 15px; line-height: 2; text-align: center;">
-        공격력: <span style="color: #ff6b6b;">${damage}</span><br>
+      <div style="font-size: 14px; line-height: 2; text-align: center;">
+        공격력: <span style="color: #ff6b6b;">${damage}${isRanged && pellets > 1 ? ' (탄당)' : ''}</span><br>
         사거리: <span style="color: #69b3ff;">${range.toFixed(1)}</span><br>
-        공격 속도: <span style="color: #ffd93d;">${cfg.swingSpeed.toFixed(2)}s</span><br>
+        ${pelletsRow}
+        ${speedLabel}: <span style="color: #ffd93d;">${cfg.swingSpeed.toFixed(2)}s</span><br>
         넉백: <span style="color: #a29bfe;">${cfg.knockback.toFixed(1)}</span><br>
-        범위 각도: <span style="color: #81ecec;">${cfg.arc}°</span>
+        ${arcLabel}: <span style="color: #81ecec;">${cfg.arc}°</span>
       </div>
       ${actionHtml}
     `;
