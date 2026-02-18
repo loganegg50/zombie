@@ -135,6 +135,7 @@ export class Game {
     this.shopUI = new ShopUI({
       onBuyWeapon: (id) => this.buyWeapon(id),
       onUpgradeWeapon: (id) => this.upgradeWeapon(id),
+      onEquipWeapon: (id) => this.equipWeaponById(id),
       onRepairAll: () => this.repairAllFences(),
       onStartWave: () => this.startNextWave(),
     });
@@ -764,6 +765,14 @@ export class Game {
     this.weapon.applyConfig(cfg, level);
     // 새 무기 뷰모델을 카메라에 부착
     this.fpsCamera.camera.add(this.weapon.viewModel);
+  }
+
+  private equipWeaponById(id: string): void {
+    const cfg = this.weaponConfigs.find((w) => w.id === id);
+    if (!cfg || !this.ownedWeapons.has(id)) return;
+    const level = this.ownedWeapons.get(id)!;
+    this.equipWeapon(cfg, level);
+    this.refreshShop();
   }
 
   private repairAllFences(): void {

@@ -4,6 +4,7 @@ import type { FenceSection } from '../entities/FenceSection';
 export interface ShopCallbacks {
   onBuyWeapon(weaponId: string): void;
   onUpgradeWeapon(weaponId: string): void;
+  onEquipWeapon(weaponId: string): void;
   onRepairAll(): void;
   onStartWave(): void;
 }
@@ -59,21 +60,35 @@ export class ShopUI {
 
       let buttonHtml = '';
       if (!owned) {
+        const canBuy = coins >= w.cost;
         buttonHtml = `<button class="shop-btn" data-action="buy" data-id="${w.id}"
-          style="margin-top: 8px; padding: 8px 16px; background: #4caf50; color: #fff;
-          border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%;"
-          ${coins < w.cost ? 'disabled style="margin-top:8px;padding:8px 16px;background:#555;color:#999;border:none;border-radius:6px;cursor:default;font-size:14px;width:100%;"' : ''}>
-          Buy - ${w.cost} coins
-        </button>`;
-      } else if (nextUpgrade) {
-        buttonHtml = `<button class="shop-btn" data-action="upgrade" data-id="${w.id}"
-          style="margin-top: 8px; padding: 8px 16px; background: #2196f3; color: #fff;
-          border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%;"
-          ${coins < nextUpgrade.cost ? 'disabled style="margin-top:8px;padding:8px 16px;background:#555;color:#999;border:none;border-radius:6px;cursor:default;font-size:14px;width:100%;"' : ''}>
-          Upgrade Lv${nextUpgrade.level} - ${nextUpgrade.cost} coins
+          style="margin-top: 8px; padding: 8px 16px; background: ${canBuy ? '#4caf50' : '#555'};
+          color: ${canBuy ? '#fff' : '#999'}; border: none; border-radius: 6px;
+          cursor: ${canBuy ? 'pointer' : 'default'}; font-size: 14px; width: 100%;"
+          ${canBuy ? '' : 'disabled'}>
+          구매 - ${w.cost} 코인
         </button>`;
       } else {
-        buttonHtml = `<div style="margin-top: 8px; padding: 8px; text-align: center; color: #888; font-size: 13px;">MAX LEVEL</div>`;
+        // 소유 중 — 장착 버튼 + 업그레이드 버튼
+        if (!isEquipped) {
+          buttonHtml += `<button class="shop-btn" data-action="equip" data-id="${w.id}"
+            style="margin-top: 8px; padding: 8px 16px; background: #ff9800; color: #fff;
+            border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%;">
+            장착
+          </button>`;
+        }
+        if (nextUpgrade) {
+          const canUpgrade = coins >= nextUpgrade.cost;
+          buttonHtml += `<button class="shop-btn" data-action="upgrade" data-id="${w.id}"
+            style="margin-top: 6px; padding: 8px 16px; background: ${canUpgrade ? '#2196f3' : '#555'};
+            color: ${canUpgrade ? '#fff' : '#999'}; border: none; border-radius: 6px;
+            cursor: ${canUpgrade ? 'pointer' : 'default'}; font-size: 14px; width: 100%;"
+            ${canUpgrade ? '' : 'disabled'}>
+            업그레이드 Lv${nextUpgrade.level} - ${nextUpgrade.cost} 코인
+          </button>`;
+        } else {
+          buttonHtml += `<div style="margin-top: 8px; padding: 8px; text-align: center; color: #888; font-size: 13px;">MAX LEVEL</div>`;
+        }
       }
 
       html += `
@@ -136,6 +151,7 @@ export class ShopUI {
         const id = el.dataset.id ?? '';
         if (action === 'buy') this.callbacks.onBuyWeapon(id);
         else if (action === 'upgrade') this.callbacks.onUpgradeWeapon(id);
+        else if (action === 'equip') this.callbacks.onEquipWeapon(id);
         else if (action === 'repair') this.callbacks.onRepairAll();
         else if (action === 'start') this.callbacks.onStartWave();
       });
