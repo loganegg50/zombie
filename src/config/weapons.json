@@ -10,8 +10,15 @@
     "arc": 90,
     "cost": 0,
     "upgrades": [
-      { "level": 2, "cost": 50, "damage": 12, "range": 2.8 },
-      { "level": 3, "cost": 120, "damage": 16, "range": 3.0 }
+      { "level": 2,  "cost": 50,   "damage": 12,  "range": 2.8 },
+      { "level": 3,  "cost": 120,  "damage": 16,  "range": 3.0 },
+      { "level": 4,  "cost": 210,  "damage": 21,  "range": 3.2 },
+      { "level": 5,  "cost": 360,  "damage": 28,  "range": 3.4 },
+      { "level": 6,  "cost": 580,  "damage": 37,  "range": 3.6 },
+      { "level": 7,  "cost": 900,  "damage": 48,  "range": 3.8 },
+      { "level": 8,  "cost": 1350, "damage": 62,  "range": 4.0 },
+      { "level": 9,  "cost": 2000, "damage": 81,  "range": 4.2 },
+      { "level": 10, "cost": 2900, "damage": 105, "range": 4.5 }
     ]
   },
   {
@@ -25,8 +32,15 @@
     "arc": 70,
     "cost": 60,
     "upgrades": [
-      { "level": 2, "cost": 80, "damage": 16, "range": 2.0, "swingSpeed": 0.13 },
-      { "level": 3, "cost": 160, "damage": 24, "range": 2.2, "swingSpeed": 0.11 }
+      { "level": 2,  "cost": 80,   "damage": 16,  "range": 2.0, "swingSpeed": 0.13 },
+      { "level": 3,  "cost": 160,  "damage": 24,  "range": 2.2, "swingSpeed": 0.11 },
+      { "level": 4,  "cost": 280,  "damage": 33,  "range": 2.4, "swingSpeed": 0.10 },
+      { "level": 5,  "cost": 470,  "damage": 45,  "range": 2.5, "swingSpeed": 0.09 },
+      { "level": 6,  "cost": 750,  "damage": 60,  "range": 2.6, "swingSpeed": 0.08 },
+      { "level": 7,  "cost": 1150, "damage": 80,  "range": 2.7, "swingSpeed": 0.08 },
+      { "level": 8,  "cost": 1700, "damage": 107, "range": 2.8, "swingSpeed": 0.07 },
+      { "level": 9,  "cost": 2400, "damage": 142, "range": 2.9, "swingSpeed": 0.07 },
+      { "level": 10, "cost": 3300, "damage": 190, "range": 3.0, "swingSpeed": 0.06 }
     ]
   },
   {
@@ -40,8 +54,15 @@
     "arc": 110,
     "cost": 100,
     "upgrades": [
-      { "level": 2, "cost": 150, "damage": 25, "range": 3.3 },
-      { "level": 3, "cost": 250, "damage": 35, "range": 3.6 }
+      { "level": 2,  "cost": 150,  "damage": 25,  "range": 3.3 },
+      { "level": 3,  "cost": 250,  "damage": 35,  "range": 3.6 },
+      { "level": 4,  "cost": 430,  "damage": 47,  "range": 3.9 },
+      { "level": 5,  "cost": 720,  "damage": 63,  "range": 4.2 },
+      { "level": 6,  "cost": 1150, "damage": 84,  "range": 4.5 },
+      { "level": 7,  "cost": 1750, "damage": 112, "range": 4.8 },
+      { "level": 8,  "cost": 2600, "damage": 149, "range": 5.0 },
+      { "level": 9,  "cost": 3700, "damage": 198, "range": 5.2 },
+      { "level": 10, "cost": 5200, "damage": 262, "range": 5.5 }
     ]
   },
   {
@@ -55,8 +76,15 @@
     "arc": 80,
     "cost": 180,
     "upgrades": [
-      { "level": 2, "cost": 200, "damage": 65, "range": 2.8, "knockback": 8.0 },
-      { "level": 3, "cost": 350, "damage": 90, "range": 3.0, "knockback": 10.0 }
+      { "level": 2,  "cost": 200,  "damage": 65,  "range": 2.8, "knockback": 8.0  },
+      { "level": 3,  "cost": 350,  "damage": 90,  "range": 3.0, "knockback": 10.0 },
+      { "level": 4,  "cost": 600,  "damage": 122, "range": 3.2, "knockback": 12.0 },
+      { "level": 5,  "cost": 980,  "damage": 165, "range": 3.4, "knockback": 14.0 },
+      { "level": 6,  "cost": 1550, "damage": 222, "range": 3.6, "knockback": 16.0 },
+      { "level": 7,  "cost": 2350, "damage": 298, "range": 3.8, "knockback": 18.0 },
+      { "level": 8,  "cost": 3450, "damage": 400, "range": 4.0, "knockback": 20.0 },
+      { "level": 9,  "cost": 4900, "damage": 537, "range": 4.2, "knockback": 22.0 },
+      { "level": 10, "cost": 6800, "damage": 720, "range": 4.5, "knockback": 25.0 }
     ]
   },
   {
@@ -70,8 +98,15 @@
     "arc": 150,
     "cost": 200,
     "upgrades": [
-      { "level": 2, "cost": 250, "damage": 48, "range": 3.8 },
-      { "level": 3, "cost": 400, "damage": 65, "range": 4.2 }
+      { "level": 2,  "cost": 250,  "damage": 48,  "range": 3.8 },
+      { "level": 3,  "cost": 400,  "damage": 65,  "range": 4.2 },
+      { "level": 4,  "cost": 680,  "damage": 88,  "range": 4.5 },
+      { "level": 5,  "cost": 1100, "damage": 118, "range": 4.8 },
+      { "level": 6,  "cost": 1700, "damage": 158, "range": 5.1 },
+      { "level": 7,  "cost": 2550, "damage": 212, "range": 5.4 },
+      { "level": 8,  "cost": 3700, "damage": 285, "range": 5.7 },
+      { "level": 9,  "cost": 5200, "damage": 382, "range": 6.0 },
+      { "level": 10, "cost": 7200, "damage": 512, "range": 6.5 }
     ]
   },
   {
@@ -85,8 +120,15 @@
     "arc": 40,
     "cost": 250,
     "upgrades": [
-      { "level": 2, "cost": 280, "damage": 40, "range": 5.0 },
-      { "level": 3, "cost": 450, "damage": 55, "range": 5.5 }
+      { "level": 2,  "cost": 280,  "damage": 40,  "range": 5.0 },
+      { "level": 3,  "cost": 450,  "damage": 55,  "range": 5.5 },
+      { "level": 4,  "cost": 760,  "damage": 74,  "range": 6.0 },
+      { "level": 5,  "cost": 1250, "damage": 100, "range": 6.5 },
+      { "level": 6,  "cost": 1950, "damage": 135, "range": 7.0 },
+      { "level": 7,  "cost": 2900, "damage": 182, "range": 7.5 },
+      { "level": 8,  "cost": 4200, "damage": 245, "range": 8.0 },
+      { "level": 9,  "cost": 5900, "damage": 330, "range": 8.5 },
+      { "level": 10, "cost": 8100, "damage": 445, "range": 9.0 }
     ]
   },
   {
@@ -101,8 +143,15 @@
     "cost": 150,
     "pellets": 1,
     "upgrades": [
-      { "level": 2, "cost": 180, "damage": 45, "range": 22 },
-      { "level": 3, "cost": 320, "damage": 65, "range": 28 }
+      { "level": 2,  "cost": 180,  "damage": 45,  "range": 22 },
+      { "level": 3,  "cost": 320,  "damage": 65,  "range": 28 },
+      { "level": 4,  "cost": 550,  "damage": 90,  "range": 32 },
+      { "level": 5,  "cost": 900,  "damage": 125, "range": 36 },
+      { "level": 6,  "cost": 1400, "damage": 172, "range": 40 },
+      { "level": 7,  "cost": 2100, "damage": 236, "range": 44 },
+      { "level": 8,  "cost": 3000, "damage": 325, "range": 48 },
+      { "level": 9,  "cost": 4200, "damage": 447, "range": 52 },
+      { "level": 10, "cost": 5800, "damage": 615, "range": 56 }
     ]
   },
   {
@@ -117,8 +166,15 @@
     "cost": 280,
     "pellets": 7,
     "upgrades": [
-      { "level": 2, "cost": 300, "damage": 35, "range": 8, "pellets": 8 },
-      { "level": 3, "cost": 500, "damage": 50, "range": 10, "pellets": 9 }
+      { "level": 2,  "cost": 300,  "damage": 35,  "range": 8,  "pellets": 8  },
+      { "level": 3,  "cost": 500,  "damage": 50,  "range": 10, "pellets": 9  },
+      { "level": 4,  "cost": 830,  "damage": 68,  "range": 11, "pellets": 10 },
+      { "level": 5,  "cost": 1300, "damage": 92,  "range": 12, "pellets": 11 },
+      { "level": 6,  "cost": 1950, "damage": 124, "range": 13, "pellets": 12 },
+      { "level": 7,  "cost": 2850, "damage": 167, "range": 14, "pellets": 13 },
+      { "level": 8,  "cost": 4000, "damage": 225, "range": 15, "pellets": 14 },
+      { "level": 9,  "cost": 5500, "damage": 303, "range": 16, "pellets": 15 },
+      { "level": 10, "cost": 7500, "damage": 408, "range": 18, "pellets": 16 }
     ]
   },
   {
@@ -133,8 +189,15 @@
     "cost": 450,
     "pellets": 1,
     "upgrades": [
-      { "level": 2, "cost": 500, "damage": 180, "range": 40 },
-      { "level": 3, "cost": 800, "damage": 250, "range": 50 }
+      { "level": 2,  "cost": 500,   "damage": 180,  "range": 40 },
+      { "level": 3,  "cost": 800,   "damage": 250,  "range": 50 },
+      { "level": 4,  "cost": 1350,  "damage": 350,  "range": 55 },
+      { "level": 5,  "cost": 2150,  "damage": 490,  "range": 60 },
+      { "level": 6,  "cost": 3300,  "damage": 685,  "range": 65 },
+      { "level": 7,  "cost": 4900,  "damage": 955,  "range": 70 },
+      { "level": 8,  "cost": 7000,  "damage": 1335, "range": 75 },
+      { "level": 9,  "cost": 9800,  "damage": 1870, "range": 80 },
+      { "level": 10, "cost": 13500, "damage": 2620, "range": 90 }
     ]
   }
 ]

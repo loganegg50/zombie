@@ -50,9 +50,12 @@ export function updateCombat(
   dt: number,
 ): void {
   // 공격 시작
+  const hasFastReload = weapon.enchants.includes('fast_reload');
+  const cooldownMult = hasFastReload ? 0.7 : 1;
   if (input.mouseJustDown && player.attackCooldown <= 0 && !player.isCasting) {
     weapon.startAttack();
-    player.attackCooldown = weapon.swingSpeed;
+    player.attackCooldown = weapon.swingSpeed * cooldownMult;
+    player.attackCooldownMax = player.attackCooldown;
   }
 
   // 애니메이션 업데이트 + 히트 프레임 감지
@@ -62,6 +65,13 @@ export function updateCombat(
 
   const facingAngle = player.facingAngle;
   let hitCount = 0;
+
+  // 인첸트 효과 계산
+  const hasSharpness = weapon.enchants.includes('sharpness');
+  const hasKnockback = weapon.enchants.includes('knockback');
+  const hasFire = weapon.enchants.includes('fire');
+  const dmgMult = hasSharpness ? 1.5 : 1;
+  const kbMult = hasKnockback ? 2 : 1;
 
   if (weapon.type === 'ranged') {
     // ── 원거리: 3D 레이캐스트 + AABB 히트박스 ──
@@ -78,8 +88,11 @@ export function updateCombat(
 
     // 탄환별 피해량 누적 (같은 좀비를 여러 탄이 맞출 수 있음)
     const hitMap = new Map<Zombie, number>();
+    const hasPierce = weapon.enchants.includes('pierce');
 
-    for (let p = 0; p < weapon.pellets; p++) {
+    const hasMultiShot = weapon.enchants.includes('multi_shot');
+    const totalPellets = weapon.pellets + (hasMultiShot ? 2 : 0);
+    for (let p = 0; p < totalPellets; p++) {
       // 수평 확산 + pitch 포함 3D 발사 방향
       const angle = facingAngle + (Math.random() - 0.5) * spreadRad * 2;
       const cosPitch = Math.cos(cameraPitch);
@@ -89,25 +102,34 @@ export function updateCombat(
         -Math.cos(angle) * cosPitch,
       ).normalize();
 
-      let closestZ: Zombie | null = null;
-      let closestT = weapon.range;
-
-      for (const z of zombies) {
-        if (!z.active || z.state === ZombieState.DYING) continue;
-
-        // 좀비 AABB: 발(z.position.y)부터 머리(+1.9)까지, 너비 0.9×0.9
-        const boxMin = new THREE.Vector3(z.position.x - 0.45, z.position.y,       z.position.z - 0.45);
-        const boxMax = new THREE.Vector3(z.position.x + 0.45, z.position.y + 1.9, z.position.z + 0.45);
-
-        const t = rayAABB(rayOrigin, dir, boxMin, boxMax);
-        if (t !== null && t < closestT) {
-          closestT = t;
-          closestZ = z;
+      if (hasPierce) {
+        // 관통: 사거리 내 레이 경로상 모든 좀비 적중
+        for (const z of zombies) {
+          if (!z.active || z.state === ZombieState.DYING) continue;
+          const boxMin = new THREE.Vector3(z.position.x - 0.45, z.position.y, z.position.z - 0.45);
+          const boxMax = new THREE.Vector3(z.position.x + 0.45, z.position.y + 1.9, z.position.z + 0.45);
+          const t = rayAABB(rayOrigin, dir, boxMin, boxMax);
+          if (t !== null && t < weapon.range) {
+            hitMap.set(z, (hitMap.get(z) ?? 0) + weapon.damage);
+          }
         }
-      }
-
-      if (closestZ) {
-        hitMap.set(closestZ, (hitMap.get(closestZ) ?? 0) + weapon.damage);
+      } else {
+        // 기본: 가장 가까운 좀비 1마리만
+        let closestZ: Zombie | null = null;
+        let closestT = weapon.range;
+        for (const z of zombies) {
+          if (!z.active || z.state === ZombieState.DYING) continue;
+          const boxMin = new THREE.Vector3(z.position.x - 0.45, z.position.y, z.position.z - 0.45);
+          const boxMax = new THREE.Vector3(z.position.x + 0.45, z.position.y + 1.9, z.position.z + 0.45);
+          const t = rayAABB(rayOrigin, dir, boxMin, boxMax);
+          if (t !== null && t < closestT) {
+            closestT = t;
+            closestZ = z;
+          }
+        }
+        if (closestZ) {
+          hitMap.set(closestZ, (hitMap.get(closestZ) ?? 0) + weapon.damage);
+        }
       }
 
       // 총구 화염 파티클
@@ -121,17 +143,23 @@ export function updateCombat(
 
     // 피해 적용
     for (const [z, totalDmg] of hitMap) {
-      z.hp -= totalDmg;
+      z.hp -= totalDmg * dmgMult;
       const kbDir = new THREE.Vector3()
         .subVectors(z.position, player.position)
         .normalize();
-      z.knockbackVel.copy(kbDir).multiplyScalar(weapon.knockback * 5);
+      z.knockbackVel.copy(kbDir).multiplyScalar(weapon.knockback * 5 * kbMult);
       z.flashDamage();
       particles.burst(z.position.clone().setY(1), 0xff4400, 5);
+      if (hasFire) {
+        z.burnTimer = 3;
+        z.burnDps = weapon.damage * 0.3;
+        particles.burst(z.position.clone().setY(1), 0xff6600, 4);
+      }
       hitCount++;
       if (z.hp <= 0) {
         z.state = ZombieState.DYING;
-        z.stateTimer = 0.4;
+        z.stateTimer = 1.5;
+        z.startDying();
       }
     }
 
@@ -146,19 +174,25 @@ export function updateCombat(
       if (!z.active || z.state === ZombieState.DYING) continue;
 
       if (pointInSector(z.position, player.position, facingAngle, weapon.range, weapon.arc)) {
-        z.hp -= weapon.damage;
+        z.hp -= weapon.damage * dmgMult;
         hitCount++;
 
         const dir = new THREE.Vector3()
           .subVectors(z.position, player.position)
           .normalize();
-        z.knockbackVel.copy(dir).multiplyScalar(weapon.knockback * 5);
+        z.knockbackVel.copy(dir).multiplyScalar(weapon.knockback * 5 * kbMult);
         z.flashDamage();
         particles.burst(z.position.clone().setY(1), 0xff3333, 6);
+        if (hasFire) {
+          z.burnTimer = 3;
+          z.burnDps = weapon.damage * 0.3;
+          particles.burst(z.position.clone().setY(1), 0xff6600, 4);
+        }
 
         if (z.hp <= 0) {
           z.state = ZombieState.DYING;
-          z.stateTimer = 0.4;
+          z.stateTimer = 1.5;
+          z.startDying();
         }
       }
     }

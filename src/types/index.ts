@@ -73,6 +73,15 @@ export interface EconomyConfig {
   absorbSpeed: number;
 }
 
+// ── Enchantment ──
+
+export type Enchant = 'knockback' | 'sharpness' | 'fire' | 'multi_shot' | 'fast_reload' | 'pierce';
+
+export interface WeaponState {
+  level: number;
+  enchants: Enchant[];
+}
+
 // ── Runtime Interfaces ──
 
 import type { Group } from 'three';

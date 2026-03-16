@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { WeaponConfig } from '../types';
+import type { WeaponConfig, Enchant } from '../types';
 
 const SKIN = 0xffccaa;
 const SLEEVE = 0x3366cc;
@@ -16,6 +16,7 @@ export class Weapon {
   knockback: number;
   arc: number;
   pellets: number;
+  enchants: Enchant[] = [];
 
   isSwinging = false;
   swingProgress = 0;
@@ -346,7 +347,6 @@ export class Weapon {
   // ── 근접: 스윙 ──
 
   startSwing(): void {
-    if (this.isSwinging) return;
     this.isSwinging = true;
     this.swingProgress = 0;
   }
@@ -417,7 +417,6 @@ export class Weapon {
   // ── 원거리: 발사 (반동) ──
 
   startShoot(): void {
-    if (this.isShooting) return;
     this.isShooting = true;
     this.shootProgress = 0;
   }

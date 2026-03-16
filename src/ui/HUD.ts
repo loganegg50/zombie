@@ -8,6 +8,9 @@ export class HUD {
   private castBar: HTMLDivElement;
   private castFill: HTMLDivElement;
   private repairHint: HTMLDivElement;
+  private reloadBar: HTMLDivElement;
+  private reloadFill: HTMLDivElement;
+  private reloadText: HTMLDivElement;
 
   constructor() {
     const ui = document.getElementById('ui-layer')!;
@@ -64,6 +67,22 @@ export class HUD {
         font-size: 12px; opacity: 0; transition: opacity 0.2s;
         color: #8bc34a;
       ">Hold R to repair fence</div>
+
+      <div id="reload-bar" style="
+        position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
+        width: 120px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px;
+        overflow: hidden; display: none;
+      ">
+        <div id="reload-fill" style="
+          width: 0%; height: 100%;
+          background: linear-gradient(90deg, #69b3ff, #4fc3f7);
+          border-radius: 3px;
+        "></div>
+      </div>
+      <div id="reload-text" style="
+        position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%);
+        font-size: 11px; color: #69b3ff; opacity: 0; text-align: center;
+      "></div>
     `;
     ui.appendChild(this.container);
 
@@ -75,6 +94,9 @@ export class HUD {
     this.castBar = document.getElementById('cast-bar') as HTMLDivElement;
     this.castFill = document.getElementById('cast-fill') as HTMLDivElement;
     this.repairHint = document.getElementById('repair-hint') as HTMLDivElement;
+    this.reloadBar = document.getElementById('reload-bar') as HTMLDivElement;
+    this.reloadFill = document.getElementById('reload-fill') as HTMLDivElement;
+    this.reloadText = document.getElementById('reload-text') as HTMLDivElement;
   }
 
   update(
@@ -87,6 +109,8 @@ export class HUD {
     weaponName: string,
     castProgress: number,
     nearFence: boolean,
+    attackCooldown = 0,
+    attackCooldownMax = 0,
   ): void {
     const hpPct = Math.max(0, (hp / maxHp) * 100);
     this.hpFill.style.width = `${hpPct}%`;
@@ -112,6 +136,18 @@ export class HUD {
     }
 
     this.repairHint.style.opacity = nearFence && castProgress === 0 ? '1' : '0';
+
+    // 장전 바
+    if (attackCooldown > 0 && attackCooldownMax > 0) {
+      const pct = Math.min(1, 1 - attackCooldown / attackCooldownMax);
+      this.reloadBar.style.display = 'block';
+      this.reloadFill.style.width = `${pct * 100}%`;
+      this.reloadText.style.opacity = '1';
+      this.reloadText.textContent = `장전 ${attackCooldown.toFixed(1)}s`;
+    } else {
+      this.reloadBar.style.display = 'none';
+      this.reloadText.style.opacity = '0';
+    }
   }
 
   show(): void { this.container.style.display = 'block'; }

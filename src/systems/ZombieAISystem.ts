@@ -4,7 +4,7 @@ import type { Zombie } from '../entities/Zombie';
 import type { Player } from '../entities/Player';
 import type { FenceSection } from '../entities/FenceSection';
 import { distanceXZ, angleToward } from '../utils/MathUtils';
-import { RAMP_ORIGIN, RAMP_DIR, RAMP_HORIZ_LEN, RAMP_RADIUS } from '../core/Scene';
+import { RAMP_ORIGIN, RAMP_DIR, RAMP_HORIZ_LEN, RAMP_RADIUS, RAMP_LEAF_SPHERES } from '../core/Scene';
 
 // 경사로 입구 접근 지점 (경사로 시작 바로 앞)
 const RAMP_ENTRY = new THREE.Vector3(RAMP_ORIGIN[0] - 1.0, 0, RAMP_ORIGIN[1]);
@@ -25,6 +25,20 @@ export function updateZombieAI(
   if (!zombie.active) return;
 
   zombie.updateFlash(dt);
+
+  // DYING 상태는 별도 처리 (중력 + 쓰러짐)
+  if (zombie.state === ZombieState.DYING) {
+    handleDying(zombie, dt);
+    return;
+  }
+
+  // 화상 데미지 틱
+  if (zombie.updateBurn(dt)) {
+    zombie.state = ZombieState.DYING;
+    zombie.stateTimer = 1.5;
+    zombie.startDying();
+    return;
+  }
 
   // Apply knockback
   if (zombie.knockbackVel.lengthSq() > 0.01) {
@@ -63,15 +77,12 @@ export function updateZombieAI(
         }
       }
 
-      // 현재 목표가 온전한 울타리인데, 5칸 이내에 구멍이 생겼으면 경로 변경
+      // 현재 목표가 온전한 울타리인데, 목표 근처(5칸)에 구멍이 생겼으면 경로 변경
       const tf = zombie.targetFence;
       if (!tf.isDestroyed) {
-        const nearGap = findNearestGap(zombie, fences);
+        const nearGap = findNearestGapNearFence(tf, fences);
         if (nearGap) {
-          const gapDist = distanceXZ(zombie.position, nearGap.worldPos);
-          if (gapDist <= GAP_DETECT_RANGE) {
-            zombie.targetFence = nearGap; // 구멍으로 경로 전환
-          }
+          zombie.targetFence = nearGap; // 구멍으로 경로 전환
         }
       }
 
@@ -123,6 +134,8 @@ export function updateZombieAI(
     }
 
     case ZombieState.CHASING: {
+      // 플레이어가 나뭇잎 속에 있으면 인식 불가 — 멈춤
+      if (isInLeaves(player.position)) break;
       const chaseTarget = getChaseTarget(zombie, player);
       moveToward(zombie, chaseTarget, dt);
       const heightDiff = Math.abs(zombie.position.y - player.position.y);
@@ -134,6 +147,11 @@ export function updateZombieAI(
     }
 
     case ZombieState.ATTACKING_PLAYER: {
+      // 플레이어가 나뭇잎 속으로 피신하면 놓침
+      if (isInLeaves(player.position)) {
+        zombie.state = ZombieState.CHASING;
+        break;
+      }
       faceToward(zombie, player.position);
       const heightDiff = Math.abs(zombie.position.y - player.position.y);
       if (distanceXZ(zombie.position, player.position) > PLAYER_ATTACK_RANGE + 0.5 || heightDiff >= 1.5) {
@@ -148,16 +166,6 @@ export function updateZombieAI(
       break;
     }
 
-    case ZombieState.DYING:
-      zombie.stateTimer -= dt;
-      const s = Math.max(0, zombie.stateTimer / 0.4);
-      zombie.mesh.scale.set(1, s, 1);
-      if (zombie.stateTimer <= 0) {
-        zombie.active = false;
-        zombie.mesh.visible = false;
-        zombie.mesh.scale.set(1, 1, 1);
-      }
-      break;
   }
 }
 
@@ -196,31 +204,33 @@ function pickBestTarget(zombie: Zombie, fences: FenceSection[]): void {
   let bestScore = Infinity;
   for (const f of fences) {
     const d = distanceXZ(zombie.position, f.worldPos);
-    // 5칸 이내 구멍만 선호, 그 이상은 온전한 울타리와 동일하게 취급
-    const score = (f.isDestroyed && d <= GAP_DETECT_RANGE) ? d * GAP_PREFER_FACTOR : (f.isDestroyed ? Infinity : d);
+    let score: number;
+    if (f.isDestroyed) {
+      // 이 구멍 근처(5칸)에 온전한 울타리가 있으면 → 갭 선호 (거리에 0.7배 가중치)
+      const nearIntact = fences.some(
+        other => !other.isDestroyed && distanceXZ(f.worldPos, other.worldPos) <= GAP_DETECT_RANGE
+      );
+      score = nearIntact ? d * GAP_PREFER_FACTOR : d;
+    } else {
+      score = d;
+    }
     if (score < bestScore) {
       bestScore = score;
       best = f;
     }
   }
-  // 갭만 있고 전부 범위 밖이면 가장 가까운 온전한 울타리로 폴백
-  if (!best) {
-    for (const f of fences) {
-      if (f.isDestroyed) continue;
-      const d = distanceXZ(zombie.position, f.worldPos);
-      if (d < bestScore) { bestScore = d; best = f; }
-    }
-  }
   zombie.targetFence = best;
 }
 
-/** 가장 가까운 구멍(파괴된 울타리) 반환 */
-function findNearestGap(zombie: Zombie, fences: FenceSection[]): FenceSection | null {
+/** 기준 울타리 근처(5칸)의 구멍 중 가장 가까운 것 반환 */
+function findNearestGapNearFence(ref: FenceSection, fences: FenceSection[]): FenceSection | null {
   let best: FenceSection | null = null;
   let bestDist = Infinity;
   for (const f of fences) {
     if (!f.isDestroyed) continue;
-    const d = distanceXZ(zombie.position, f.worldPos);
+    // 기준 울타리와 구멍 사이 거리가 5칸 이내인지 체크
+    if (distanceXZ(f.worldPos, ref.worldPos) > GAP_DETECT_RANGE) continue;
+    const d = distanceXZ(f.worldPos, ref.worldPos);
     if (d < bestDist) {
       bestDist = d;
       best = f;
@@ -241,4 +251,33 @@ function moveToward(zombie: Zombie, target: THREE.Vector3, dt: number): void {
 
 function faceToward(zombie: Zombie, target: THREE.Vector3): void {
   zombie.mesh.rotation.y = angleToward(zombie.position, target);
+}
+
+/** 사망 애니메이션: 옆으로 쓰러지며 중력으로 낙하 */
+function handleDying(zombie: Zombie, dt: number): void {
+  zombie.stateTimer -= dt;
+
+  // 옆으로 쓰러짐 (3.5 rad/s → ~0.45s 만에 완전히 눕힘)
+  zombie.dyingTip = Math.min(Math.PI / 2, zombie.dyingTip + 3.5 * dt);
+  zombie.mesh.rotation.z = zombie.dyingTipDir * zombie.dyingTip;
+
+  // 중력 낙하 (경사로 위에 있던 좀비가 땅으로)
+  zombie.dyingVelY -= 9.8 * dt;
+  zombie.position.y = Math.max(0, zombie.position.y + zombie.dyingVelY * dt);
+
+  if (zombie.stateTimer <= 0) {
+    zombie.active = false;
+    zombie.mesh.visible = false;
+  }
+}
+
+/** 위치가 경사로 나뭇잎 구체 중 하나 안에 있으면 true */
+function isInLeaves(pos: THREE.Vector3): boolean {
+  for (const [lx, ly, lz, r] of RAMP_LEAF_SPHERES) {
+    const dx = pos.x - lx;
+    const dy = pos.y - ly;
+    const dz = pos.z - lz;
+    if (dx * dx + dy * dy + dz * dz < r * r) return true;
+  }
+  return false;
 }

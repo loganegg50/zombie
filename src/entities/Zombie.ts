@@ -24,6 +24,15 @@ export class Zombie implements Poolable {
   // Knockback
   knockbackVel = new THREE.Vector3();
 
+  // Death fall
+  dyingVelY = 0;
+  dyingTip = 0;       // 현재 기울기 [0, PI/2]
+  dyingTipDir = 1;    // 쓰러지는 방향 (+1 왼쪽, -1 오른쪽)
+
+  // Burn (발화 인첸트)
+  burnTimer = 0;
+  burnDps = 0;
+
   // Visual
   private bodyMesh: THREE.Mesh;
   private bodyMat: THREE.MeshStandardMaterial;
@@ -82,6 +91,20 @@ export class Zombie implements Poolable {
     this.knockbackVel.set(0, 0, 0);
     this.flashTimer = 0;
     this.bodyMat.color.setHex(this.originalColor);
+    this.dyingVelY = 0;
+    this.dyingTip = 0;
+    this.dyingTipDir = 1;
+    this.burnTimer = 0;
+    this.burnDps = 0;
+    this.mesh.rotation.x = 0;
+    this.mesh.rotation.z = 0;
+    this.mesh.scale.set(1, 1, 1);
+  }
+
+  startDying(): void {
+    this.dyingVelY = 0;
+    this.dyingTip = 0;
+    this.dyingTipDir = Math.random() > 0.5 ? 1 : -1;
   }
 
   spawn(x: number, z: number, hp: number, speed: number, coinValue: number): void {
@@ -103,8 +126,29 @@ export class Zombie implements Poolable {
     if (this.flashTimer > 0) {
       this.flashTimer -= dt;
       if (this.flashTimer <= 0) {
+        this.bodyMat.color.setHex(
+          this.burnTimer > 0 ? 0xff6600 : this.originalColor,
+        );
+      }
+    }
+  }
+
+  /** 화상 데미지 틱. 사망 시 true 반환 */
+  updateBurn(dt: number): boolean {
+    if (this.burnTimer <= 0) return false;
+    this.burnTimer -= dt;
+    this.hp -= this.burnDps * dt;
+    // 오렌지 플래시 (flashTimer가 없을 때만)
+    if (this.flashTimer <= 0) {
+      this.bodyMat.color.setHex(0xff6600);
+    }
+    if (this.burnTimer <= 0) {
+      this.burnTimer = 0;
+      this.burnDps = 0;
+      if (this.flashTimer <= 0) {
         this.bodyMat.color.setHex(this.originalColor);
       }
     }
+    return this.hp <= 0;
   }
 }

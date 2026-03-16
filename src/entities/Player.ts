@@ -18,6 +18,7 @@ export class Player {
   isCasting = false;
 
   attackCooldown = 0;
+  attackCooldownMax = 0;
 
   /** 카메라 yaw 값과 동기화 (전투 판정에 사용) */
   facingAngle = 0;
