@@ -55,7 +55,9 @@ export interface ZombieConfig {
   fenceDamage: number;
   coinDrop: { min: number; max: number };
   bodyColor: string;
+  headColor?: string;
   scale: number;
+  canPassDamagedFence?: boolean;
 }
 
 export interface WaveConfig {

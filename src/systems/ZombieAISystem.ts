@@ -96,6 +96,12 @@ export function updateZombieAI(
           zombie.state = ZombieState.ENTERING;
           zombie.stateTimer = 1.5;
         }
+      } else if (zombie.canPassDamagedFence && zombie.targetFence.hpRatio <= 0.5) {
+        // 돌격 좀비: 울타리 HP 50% 이하이면 통과
+        if (dist < 2.0) {
+          zombie.state = ZombieState.ENTERING;
+          zombie.stateTimer = 1.0;
+        }
       } else {
         // 온전한 울타리 — 가까이 오면 공격 시작
         if (dist < FENCE_ATTACK_RANGE) {

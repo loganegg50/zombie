@@ -14,6 +14,8 @@ export class Zombie implements Poolable {
   fenceDamage = 10;  // damage to fence
   attackRate = 1.5;
   coinValue = 10;
+  zombieType = 'normal';
+  canPassDamagedFence = false;
 
   // AI
   state = ZombieState.SPAWNING;
@@ -96,6 +98,8 @@ export class Zombie implements Poolable {
     this.dyingTipDir = 1;
     this.burnTimer = 0;
     this.burnDps = 0;
+    this.zombieType = 'normal';
+    this.canPassDamagedFence = false;
     this.mesh.rotation.x = 0;
     this.mesh.rotation.z = 0;
     this.mesh.scale.set(1, 1, 1);
@@ -107,7 +111,10 @@ export class Zombie implements Poolable {
     this.dyingTipDir = Math.random() > 0.5 ? 1 : -1;
   }
 
-  spawn(x: number, z: number, hp: number, speed: number, coinValue: number): void {
+  spawn(
+    x: number, z: number, hp: number, speed: number, coinValue: number,
+    config?: { id: string; damage: number; fenceDamage: number; attackRate: number; bodyColor: string; headColor?: string; scale: number; canPassDamagedFence?: boolean },
+  ): void {
     this.mesh.position.set(x, 0, z);
     this.maxHp = hp;
     this.hp = hp;
@@ -115,6 +122,28 @@ export class Zombie implements Poolable {
     this.coinValue = coinValue;
     this.state = ZombieState.SPAWNING;
     this.stateTimer = 0.5;
+
+    if (config) {
+      this.zombieType = config.id;
+      this.damage = config.damage;
+      this.fenceDamage = config.fenceDamage;
+      this.attackRate = config.attackRate;
+      this.canPassDamagedFence = config.canPassDamagedFence ?? false;
+      const scale = config.scale;
+      this.mesh.scale.set(scale, scale, scale);
+      const bodyColor = parseInt(config.bodyColor);
+      const headColor = parseInt(config.headColor ?? config.bodyColor);
+      this.originalColor = bodyColor;
+      this.bodyMat.color.setHex(bodyColor);
+      // head (index 1) 색상
+      const headMesh = this.mesh.children[1] as THREE.Mesh;
+      if (headMesh) (headMesh.material as THREE.MeshStandardMaterial).color.setHex(headColor);
+      // arm 색상 (index 2, 3)
+      for (let i = 2; i <= 3; i++) {
+        const arm = this.mesh.children[i] as THREE.Mesh;
+        if (arm) (arm.material as THREE.MeshStandardMaterial).color.setHex(bodyColor);
+      }
+    }
   }
 
   flashDamage(): void {

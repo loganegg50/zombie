@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GamePhase } from './types';
-import type { WeaponConfig, ZombieConfig, WaveConfig, Enchant, WeaponState } from './types';
+import type { WeaponConfig, ZombieConfig, Enchant, WeaponState } from './types';
 import { SceneManager } from './core/Scene';
 import { FPSCamera } from './core/Camera';
 import { Input } from './core/Input';
@@ -24,7 +24,6 @@ import { GameOverUI } from './ui/GameOverUI';
 
 import weaponsData from './config/weapons.json';
 import zombiesData from './config/zombies.json';
-import wavesData from './config/waves.json';
 
 const FENCE_MAX_HP = 100;
 const SAVE_KEY = 'zombie-defense-save';
@@ -73,8 +72,7 @@ export class Game {
   // State
   phase = GamePhase.PREGAME;
   private weaponConfigs = weaponsData as WeaponConfig[];
-  private zombieConfig = (zombiesData as ZombieConfig[])[0];
-  private waveConfigs = wavesData as WaveConfig[];
+  private zombieConfigs = zombiesData as ZombieConfig[];
   private totalKills = 0;
   private totalCoinsEarned = 0;
 
@@ -123,7 +121,7 @@ export class Game {
       20,
     );
 
-    this.waveSystem = new WaveSystem(this.waveConfigs, this.zombieConfig);
+    this.waveSystem = new WaveSystem(this.zombieConfigs);
     this.particles = new ParticleSystem(this.sceneManager.scene);
 
     this.hud = new HUD();
@@ -803,21 +801,11 @@ export class Game {
       this.savePersistent();
       this.player.hp = this.player.maxHp;
 
-      if (this.waveSystem.isLastWave) {
-        this.phase = GamePhase.GAMEOVER;
-        this.deleteSave();
-        this.crosshair.style.display = 'none';
-        this.input.showMobileControls(false);
-        if (this.mobilePauseBtn) this.mobilePauseBtn.style.display = 'none';
-        this.gameOverUI.show(true, this.waveSystem.currentWave, this.totalKills, this.totalCoinsEarned);
-        this.hud.hide();
-      } else {
-        this.phase = GamePhase.SHOP;
-        this.crosshair.style.display = 'none';
-        this.saveGame();
-        if (!this.input.isMobile) document.exitPointerLock();
-        this.showBetweenWaveOverlay(this.waveSystem.currentWave);
-      }
+      this.phase = GamePhase.SHOP;
+      this.crosshair.style.display = 'none';
+      this.saveGame();
+      if (!this.input.isMobile) document.exitPointerLock();
+      this.showBetweenWaveOverlay(this.waveSystem.currentWave);
     }
 
     if (this.debugHitboxes) {

@@ -124,7 +124,7 @@ export class HUD {
     }
 
     this.coinText.textContent = `${coins}`;
-    this.waveText.textContent = `Wave ${wave} / ${totalWaves}`;
+    this.waveText.textContent = totalWaves === Infinity ? `Wave ${wave}` : `Wave ${wave} / ${totalWaves}`;
     this.zombieText.textContent = zombiesLeft > 0 ? `${zombiesLeft} remaining` : '';
     this.weaponText.textContent = weaponName;
 

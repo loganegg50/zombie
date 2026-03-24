@@ -1,7 +1,7 @@
 [
   {
-    "id": "basic",
-    "name": "Shambler",
+    "id": "normal",
+    "name": "일반 좀비",
     "hp": 30,
     "speed": 1.5,
     "damage": 5,
@@ -9,6 +9,60 @@
     "fenceDamage": 10,
     "coinDrop": { "min": 8, "max": 15 },
     "bodyColor": "0x556b2f",
+    "headColor": "0x6b7a3f",
     "scale": 1.0
+  },
+  {
+    "id": "tank",
+    "name": "거대 좀비",
+    "hp": 120,
+    "speed": 0.9,
+    "damage": 15,
+    "attackRate": 2.0,
+    "fenceDamage": 20,
+    "coinDrop": { "min": 20, "max": 35 },
+    "bodyColor": "0x3d5a1e",
+    "headColor": "0x4a6b25",
+    "scale": 1.4
+  },
+  {
+    "id": "runner",
+    "name": "돌격 좀비",
+    "hp": 20,
+    "speed": 6,
+    "damage": 5,
+    "attackRate": 1.5,
+    "fenceDamage": 5,
+    "coinDrop": { "min": 12, "max": 20 },
+    "bodyColor": "0x2a5a8a",
+    "headColor": "0x3a6a9a",
+    "scale": 0.6,
+    "canPassDamagedFence": true
+  },
+  {
+    "id": "brute",
+    "name": "강화 좀비",
+    "hp": 200,
+    "speed": 1.5,
+    "damage": 20,
+    "attackRate": 1.5,
+    "fenceDamage": 25,
+    "coinDrop": { "min": 30, "max": 50 },
+    "bodyColor": "0x1a4a7a",
+    "headColor": "0x2a5a8a",
+    "scale": 1.3
+  },
+  {
+    "id": "boss",
+    "name": "보스 좀비",
+    "hp": 400,
+    "speed": 1.5,
+    "damage": 50,
+    "attackRate": 2.0,
+    "fenceDamage": 100,
+    "coinDrop": { "min": 80, "max": 120 },
+    "bodyColor": "0x0d3366",
+    "headColor": "0x1a4488",
+    "scale": 1.7
   }
 ]
