@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GamePhase } from './types';
+import { CoopSystem } from './systems/CoopSystem';
 import type { WeaponConfig, ZombieConfig, Enchant, WeaponState } from './types';
 import { SceneManager } from './core/Scene';
 import { FPSCamera } from './core/Camera';
@@ -26,8 +27,8 @@ import weaponsData from './config/weapons.json';
 import zombiesData from './config/zombies.json';
 
 const FENCE_MAX_HP = 100;
-const SAVE_KEY = 'zombie-defense-save';
-const PERSISTENT_KEY = 'zombie-defense-progress';
+const saveKey = () => window.GameAccount.key('zombie-defense-save');
+const progressKey = () => window.GameAccount.key('zombie-defense-progress');
 const ENCHANT_COST = 1000;
 const ENCHANT_INFO: { id: Enchant; name: string; icon: string; desc: string; color: string; rangedOnly?: boolean }[] = [
   { id: 'sharpness', name: '날카로움', icon: '🗡️', desc: '데미지 ×1.5', color: '#ff6b6b' },
@@ -39,6 +40,112 @@ const ENCHANT_INFO: { id: Enchant; name: string; icon: string; desc: string; col
 ];
 
 export class Game {
+  private coop!: CoopSystem;
+  private coopPeers = new Map<string, { player: Player; weapon: Weapon; pitch: number; attack: boolean; seen: number; name: string }>();
+  private coopZombies = new Map<number, Zombie>();
+  private coopHostPhase = GamePhase.COMBAT;
+
+  coopStatus() {
+    return { playing: [GamePhase.COMBAT, GamePhase.SHOP, GamePhase.PAUSED].includes(this.phase), wave: this.waveSystem.currentWave };
+  }
+
+  coopLocalPlayer() {
+    const p = this.player.position;
+    return { x: p.x, y: p.y, z: p.z, yaw: this.fpsCamera.yaw, pitch: this.fpsCamera.pitch, weapon: this.weapon.id, hp: this.player.hp };
+  }
+
+  private makeCoopPeer(id: string, name: string) {
+    const player = new Player(this.sceneManager.scene);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.4), new THREE.MeshStandardMaterial({ color: 0x43c9ed }));
+    body.position.y = 0.8;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffd4a8 }));
+    head.position.y = 1.6;
+    player.mesh.add(body, head);
+    const peer = { player, weapon: new Weapon(this.weaponConfigs[0]), pitch: 0, attack: false, seen: performance.now(), name };
+    this.coopPeers.set(id, peer);
+    return peer;
+  }
+
+  receiveCoopPeer(p: any): boolean {
+    if (!/^[\w-]{1,64}$/.test(p.id) || ![p.x, p.y, p.z, p.yaw, p.pitch].every(Number.isFinite)
+      || Math.abs(p.x) > 16 || Math.abs(p.z) > 16 || p.y < -1 || p.y > 12) return false;
+    let peer = this.coopPeers.get(p.id);
+    if (!peer && this.coopPeers.size >= 3) return false;
+    peer ??= this.makeCoopPeer(p.id, String(p.name).slice(0, 24));
+    const elapsed = Math.min(2, (performance.now() - peer.seen) / 1000);
+    const target = new THREE.Vector3(p.x, p.y, p.z);
+    if (peer.player.position.distanceTo(target) <= 3 + elapsed * 15 && peer.player.hp > 0) peer.player.position.copy(target);
+    peer.player.facingAngle = p.yaw;
+    peer.player.mesh.rotation.y = p.yaw;
+    peer.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, p.pitch));
+    peer.attack ||= p.attack === true;
+    peer.seen = performance.now();
+    return true;
+  }
+
+  removeCoopPeer(id: string): void {
+    const peer = this.coopPeers.get(id);
+    if (peer) {
+      this.sceneManager.scene.remove(peer.player.mesh);
+      peer.player.mesh.traverse(obj => {
+        if (obj instanceof THREE.Mesh) { obj.geometry.dispose(); const mats = Array.isArray(obj.material) ? obj.material : [obj.material]; mats.forEach(m => m.dispose()); }
+      });
+      this.coopPeers.delete(id);
+    }
+  }
+
+  coopSnapshot(host: string) {
+    return { host, phase: this.phase, wave: this.waveSystem.currentWave,
+      players: [{ ...this.coopLocalPlayer(), id: host, name: window.GameAuth.getDisplayName(window.GameAccount.user) },
+        ...Array.from(this.coopPeers, ([id, p]) => ({ id, name: p.name, x: p.player.position.x, y: p.player.position.y, z: p.player.position.z, yaw: p.player.facingAngle, hp: p.player.hp }))],
+      zombies: this.zombiePool.all.flatMap((z, id) => z.active ? [{ id, type: z.zombieType, x: z.position.x, y: z.position.y, z: z.position.z, yaw: z.mesh.rotation.y, roll: z.mesh.rotation.z, hp: z.hp, maxHp: z.maxHp }] : []),
+      fences: this.fences.map(f => f.hp) };
+  }
+
+  validCoopSnapshot(s: any): boolean {
+    const position = (p: any) => p && [p.x, p.y, p.z, p.yaw, p.hp].every(Number.isFinite)
+      && Math.abs(p.x) < 100 && Math.abs(p.z) < 100 && Math.abs(p.y) < 100;
+    return Object.values(GamePhase).includes(s.phase) && Number.isInteger(s.wave) && s.wave >= 0 && s.wave < 10000
+      && Array.isArray(s.players) && s.players.length <= 4 && s.players.every((p: any) => position(p) && typeof p.id === 'string' && p.id.length <= 64 && p.hp >= 0 && p.hp <= 100)
+      && Array.isArray(s.zombies) && s.zombies.length <= 500 && s.zombies.every((z: any) => position(z) && Number.isInteger(z.id) && z.id >= 0 && Number.isFinite(z.roll) && Number.isFinite(z.maxHp) && z.maxHp > 0 && this.zombieConfigs.some(c => c.id === z.type))
+      && Array.isArray(s.fences) && s.fences.length === this.fences.length && s.fences.every((hp: any) => Number.isFinite(hp) && hp >= 0 && hp <= FENCE_MAX_HP);
+  }
+
+  enterCoopGuest(): void {
+    this.titleOverlay.style.display = 'none';
+    this.pauseOverlay.style.display = 'none';
+    this.betweenWaveOverlay?.remove();
+    this.zombiePool.all.forEach(z => this.zombiePool.release(z));
+    this.phase = GamePhase.COMBAT;
+    this.player.hp = this.player.maxHp;
+    this.player.position.set(0, 0, 0);
+    this.hud.show(); this.crosshair.style.display = 'block';
+    this.input.showMobileControls(true);
+    // Joining uses the starter sword, matching the host's authoritative loadout.
+    this.fpsCamera.camera.remove(this.weapon.viewModel);
+    this.weapon = new Weapon(this.weaponConfigs[0]);
+    this.fpsCamera.camera.add(this.weapon.viewModel);
+  }
+
+  applyCoopSnapshot(s: any, ownId: string): void {
+    this.coopHostPhase = s.phase;
+    this.waveSystem.currentWave = s.wave;
+    for (const p of s.players) {
+      if (p.id === ownId) { this.player.hp = p.hp; continue; }
+      const peer = this.coopPeers.get(p.id) ?? this.makeCoopPeer(p.id, String(p.name).slice(0, 24));
+      peer.player.position.set(p.x, p.y, p.z); peer.player.mesh.rotation.y = p.yaw;
+      peer.player.mesh.visible = p.hp > 0;
+    }
+    for (const id of this.coopPeers.keys()) if (!s.players.some((p: any) => p.id === id)) this.removeCoopPeer(id);
+    for (const [id, z] of this.coopZombies) if (!s.zombies.some((p: any) => p.id === id)) { this.zombiePool.release(z); this.coopZombies.delete(id); }
+    for (const p of s.zombies) {
+      let z = this.coopZombies.get(p.id);
+      if (!z) { z = this.zombiePool.acquire(); z.spawn(p.x, p.z, p.maxHp, 0, 0, this.zombieConfigs.find(c => c.id === p.type)); this.coopZombies.set(p.id, z); }
+      z.position.set(p.x, p.y, p.z); z.mesh.rotation.set(0, p.yaw, p.roll); z.hp = p.hp;
+    }
+    s.fences.forEach((hp: number, i: number) => this.fences[i].restoreHp(hp));
+    this.hud.update(this.player.hp, this.player.maxHp, 0, s.wave, 0, s.zombies.length, this.weapon.name, 0, false, this.player.attackCooldown, this.player.attackCooldownMax);
+  }
   // Core
   private sceneManager!: SceneManager;
   private fpsCamera!: FPSCamera;
@@ -194,6 +301,7 @@ export class Game {
 
     this.loadPersistent();
     this.showTitle();
+    this.coop = new CoopSystem(this);
   }
 
   private buildFences(): void {
@@ -232,7 +340,7 @@ export class Game {
 
   private showTitle(): void {
     let saveWave = 0;
-    const saveRaw = localStorage.getItem(SAVE_KEY);
+    const saveRaw = localStorage.getItem(saveKey());
     if (saveRaw) {
       try { saveWave = JSON.parse(saveRaw).completedWave ?? 0; } catch { /* ignore */ }
     }
@@ -668,6 +776,7 @@ export class Game {
   }
 
   private update(dt: number): void {
+    this.coop.tick(this.input.mouseJustDown && this.phase === GamePhase.COMBAT);
     if (this.input.justPressed('escape') && this.phase === GamePhase.PAUSED) {
       this.togglePause();
     }
@@ -679,6 +788,22 @@ export class Game {
 
     if (this.input.pointerLocked) {
       this.fpsCamera.applyMouseDelta(this.input.mouseDX, this.input.mouseDY);
+    }
+
+    if (this.coop.isGuest) {
+      if (this.player.hp > 0 && this.coopHostPhase === GamePhase.COMBAT) {
+        const move = new THREE.Vector3();
+        if (this.input.isDown('w') || this.input.isDown('arrowup')) move.add(this.fpsCamera.getForward());
+        if (this.input.isDown('s') || this.input.isDown('arrowdown')) move.sub(this.fpsCamera.getForward());
+        if (this.input.isDown('d') || this.input.isDown('arrowright')) move.add(this.fpsCamera.getRight());
+        if (this.input.isDown('a') || this.input.isDown('arrowleft')) move.sub(this.fpsCamera.getRight());
+        if (this.input.justPressed(' ')) this.player.jump();
+        this.player.update(move, this.fpsCamera.yaw, dt);
+        updateCombat(this.player, this.weapon, [], this.input, this.hitStop, this.cameraShake, this.particles, this.fpsCamera.pitch, dt);
+      }
+      this.fpsCamera.update(this.player.position);
+      this.particles.update(dt);
+      return;
     }
 
     if (this.input.justPressed('h')) {
@@ -736,6 +861,13 @@ export class Game {
     this.weapon.updateAim(isADS, dt);
 
     const activeZombies = this.zombiePool.getActive();
+    for (const peer of this.coopPeers.values()) {
+      peer.player.attackCooldown = Math.max(0, peer.player.attackCooldown - dt);
+      if (peer.player.hp > 0) updateCombat(peer.player, peer.weapon, activeZombies,
+        { mouseJustDown: peer.attack } as Input, { active: false, timer: 0 },
+        this.cameraShake, this.particles, peer.pitch, dt);
+      peer.attack = false;
+    }
     updateCombat(
       this.player,
       this.weapon,
@@ -749,7 +881,11 @@ export class Game {
     );
 
     for (const z of activeZombies) {
-      updateZombieAI(z, this.player, this.fences, dt);
+      let target = this.player;
+      for (const peer of this.coopPeers.values()) {
+        if (peer.player.hp > 0 && peer.player.position.distanceToSquared(z.position) < target.position.distanceToSquared(z.position)) target = peer.player;
+      }
+      updateZombieAI(z, target, this.fences, dt);
     }
 
     // 죽은 좀비에서 코인 스폰
@@ -923,6 +1059,7 @@ export class Game {
   // ── 세이브/로드 ──
 
   private saveGame(): void {
+    if (this.coop?.isGuest) return;
     const data = {
       equippedWeaponId: this.weapon.id,
       completedWave: this.waveSystem.currentWave,
@@ -930,11 +1067,11 @@ export class Game {
       totalCoinsEarned: this.totalCoinsEarned,
       fenceHPs: this.fences.map((f) => f.hp),
     };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    localStorage.setItem(saveKey(), JSON.stringify(data));
   }
 
   private loadSave(): boolean {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(saveKey());
     if (!raw) return false;
     try {
       const data = JSON.parse(raw);
@@ -959,7 +1096,7 @@ export class Game {
   }
 
   private deleteSave(): void {
-    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(saveKey());
   }
 
   // ── 영구 저장 (코인, 무기 강화/인첸트) ──
@@ -972,18 +1109,19 @@ export class Game {
   }
 
   private savePersistent(): void {
+    if (this.coop?.isGuest) return;
     const weapons: Record<string, WeaponState> = {};
     for (const [id, state] of this.weaponStates) {
       weapons[id] = state;
     }
-    localStorage.setItem(PERSISTENT_KEY, JSON.stringify({
+    localStorage.setItem(progressKey(), JSON.stringify({
       coins: this.persistentCoins,
       weapons,
     }));
   }
 
   private loadPersistent(): void {
-    const raw = localStorage.getItem(PERSISTENT_KEY);
+    const raw = localStorage.getItem(progressKey());
     if (!raw) return;
     try {
       const data = JSON.parse(raw);

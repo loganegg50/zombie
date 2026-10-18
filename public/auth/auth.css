@@ -1,0 +1,229 @@
+.game-auth-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(4, 7, 12, 0.78);
+    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+.game-auth-backdrop.is-visible {
+    display: flex;
+}
+
+.game-auth-dialog,
+.game-auth-dialog * {
+    box-sizing: border-box;
+}
+
+.game-auth-dialog {
+    width: 400px;
+    max-width: calc(100vw - 24px);
+    overflow: hidden;
+    color: #f7f7f8;
+    background: #17191f;
+    border: 1px solid #3d414c;
+    border-radius: 8px;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+}
+
+.game-auth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid #30333b;
+}
+
+.game-auth-header h2 {
+    margin: 0;
+    color: #ffca3a;
+    font-size: 20px;
+    letter-spacing: 0;
+}
+
+.game-auth-close {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    color: #d8d9dc;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.game-auth-close:hover {
+    background: #292c34;
+}
+
+.game-auth-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid #30333b;
+}
+
+.game-auth-tabs[hidden] {
+    display: none;
+}
+
+.game-auth-tab {
+    min-height: 44px;
+    padding: 8px;
+    color: #8f939d;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.game-auth-tab:hover,
+.game-auth-tab.is-active {
+    color: #ffca3a;
+    background: #1d2027;
+    border-bottom-color: #ffca3a;
+}
+
+.game-auth-panel {
+    display: none;
+    padding: 20px;
+}
+
+.game-auth-panel.is-active {
+    display: block;
+}
+
+.game-auth-panel-title {
+    margin: 0 0 6px;
+    color: #f7f7f8;
+    font-size: 18px;
+    letter-spacing: 0;
+}
+
+.game-auth-panel-description {
+    margin: 0 0 18px;
+    color: #8f939d;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.game-auth-field-hint {
+    margin: -4px 0 14px;
+    color: #8f939d;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.game-auth-panel label {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 14px;
+    color: #b8bbc2;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.game-auth-panel small {
+    color: #777c87;
+    font-weight: 400;
+}
+
+.game-auth-panel input {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    color: #fff;
+    background: #0f1116;
+    border: 1px solid #393d47;
+    border-radius: 6px;
+    outline: 0;
+    font: inherit;
+}
+
+.game-auth-panel input:focus {
+    border-color: #ffca3a;
+    box-shadow: 0 0 0 3px rgba(255, 202, 58, 0.12);
+}
+
+.game-auth-primary,
+.game-auth-google {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.game-auth-primary {
+    color: #17191f;
+    background: #ffca3a;
+}
+
+.game-auth-primary:hover {
+    background: #ffd65f;
+}
+
+.game-auth-google {
+    color: #25272d;
+    background: #f5f5f5;
+    border: 1px solid #d7d7d7;
+}
+
+.game-auth-panel button:disabled,
+.game-auth-panel input:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.game-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 14px 0;
+    color: #777c87;
+    font-size: 12px;
+}
+
+.game-auth-divider::before,
+.game-auth-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: #30333b;
+}
+
+.game-auth-message {
+    min-height: 18px;
+    margin: 12px 0 0;
+    color: #ff7474;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.game-auth-message.is-success {
+    color: #69db7c;
+}
+
+@media (max-width: 440px) {
+    .game-auth-backdrop {
+        padding: 12px;
+    }
+
+    .game-auth-tab {
+        font-size: 12px;
+    }
+}
+/* Shared account controls stay usable over game canvases. */
+.game-account-bar { position:fixed; top:8px; right:8px; z-index:10000; display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background:#101827ed; color:#fff; font:13px sans-serif; }
+.game-account-bar button { padding:7px 10px; border:0; border-radius:6px; cursor:pointer; background:#f5ad35; color:#171717; }
+.game-account-bar [hidden] { display:none; }
+.game-account-bar span { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
