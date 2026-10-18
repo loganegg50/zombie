@@ -4,7 +4,7 @@ import type { Zombie } from '../entities/Zombie';
 import type { Player } from '../entities/Player';
 import type { FenceSection } from '../entities/FenceSection';
 import { distanceXZ, angleToward } from '../utils/MathUtils';
-import { RAMP_ORIGIN, RAMP_DIR, RAMP_HORIZ_LEN, RAMP_RADIUS, RAMP_LEAF_SPHERES } from '../core/Scene';
+import { RAMP_ORIGIN, RAMP_DIR, RAMP_HORIZ_LEN, RAMP_RADIUS } from '../core/Scene';
 
 // 경사로 입구 접근 지점 (경사로 시작 바로 앞)
 const RAMP_ENTRY = new THREE.Vector3(RAMP_ORIGIN[0] - 1.0, 0, RAMP_ORIGIN[1]);
@@ -140,8 +140,6 @@ export function updateZombieAI(
     }
 
     case ZombieState.CHASING: {
-      // 플레이어가 나뭇잎 속에 있으면 인식 불가 — 멈춤
-      if (isInLeaves(player.position)) break;
       const chaseTarget = getChaseTarget(zombie, player);
       moveToward(zombie, chaseTarget, dt);
       const heightDiff = Math.abs(zombie.position.y - player.position.y);
@@ -153,11 +151,6 @@ export function updateZombieAI(
     }
 
     case ZombieState.ATTACKING_PLAYER: {
-      // 플레이어가 나뭇잎 속으로 피신하면 놓침
-      if (isInLeaves(player.position)) {
-        zombie.state = ZombieState.CHASING;
-        break;
-      }
       faceToward(zombie, player.position);
       const heightDiff = Math.abs(zombie.position.y - player.position.y);
       if (distanceXZ(zombie.position, player.position) > PLAYER_ATTACK_RANGE + 0.5 || heightDiff >= 1.5) {
@@ -192,7 +185,7 @@ function getZombieFloorY(pos: THREE.Vector3): number {
 
 /** 플레이어가 높은 곳에 있을 때 경사로 입구를 경유해서 추격 */
 function getChaseTarget(zombie: Zombie, player: Player): THREE.Vector3 {
-  const playerElevated = player.position.y > 1.5;
+  const playerElevated = player.isGrounded && getZombieFloorY(player.position) > 0.5;
   const zombieOnGround = zombie.position.y < 0.5;
 
   if (playerElevated && zombieOnGround) {
@@ -275,15 +268,4 @@ function handleDying(zombie: Zombie, dt: number): void {
     zombie.active = false;
     zombie.mesh.visible = false;
   }
-}
-
-/** 위치가 경사로 나뭇잎 구체 중 하나 안에 있으면 true */
-function isInLeaves(pos: THREE.Vector3): boolean {
-  for (const [lx, ly, lz, r] of RAMP_LEAF_SPHERES) {
-    const dx = pos.x - lx;
-    const dy = pos.y - ly;
-    const dz = pos.z - lz;
-    if (dx * dx + dy * dy + dz * dz < r * r) return true;
-  }
-  return false;
 }

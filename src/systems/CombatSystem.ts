@@ -4,7 +4,7 @@ import type { Player } from '../entities/Player';
 import type { Weapon } from '../entities/Weapon';
 import type { Zombie } from '../entities/Zombie';
 import type { Input } from '../core/Input';
-import { pointInSector } from '../utils/Hitbox';
+import { sphereInSwing } from '../utils/Hitbox';
 import type { CameraShake } from '../effects/CameraShake';
 import type { ParticleSystem } from '../effects/Particles';
 
@@ -173,7 +173,11 @@ export function updateCombat(
     for (const z of zombies) {
       if (!z.active || z.state === ZombieState.DYING) continue;
 
-      if (pointInSector(z.position, player.position, facingAngle, weapon.range, weapon.arc)) {
+      if (sphereInSwing(
+        z.position.clone().add(new THREE.Vector3(0, 0.95 * z.mesh.scale.y, 0)),
+        0.65 * z.mesh.scale.x, player.position.clone().add(new THREE.Vector3(0, 1.2, 0)),
+        facingAngle, cameraPitch, weapon.range, weapon.arc,
+      )) {
         z.hp -= weapon.damage * dmgMult;
         hitCount++;
 
